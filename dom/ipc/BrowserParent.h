@@ -477,9 +477,9 @@ class BrowserParent final : public PBrowserParent,
   void HandleAccessKey(const WidgetKeyboardEvent& aEvent,
                        nsTArray<uint32_t>& aCharCodes);
 
-#ifdef MOZ_WIDGET_ANDROID
   void DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight);
   void DynamicToolbarOffsetChanged(ScreenIntCoord aOffset);
+#ifdef MOZ_WIDGET_ANDROID
   void KeyboardHeightChanged(ScreenIntCoord aHeight);
   void AndroidPipModeChanged(bool);
 #endif

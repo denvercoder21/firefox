@@ -1212,7 +1212,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemoteStyle(
 
 mozilla::ipc::IPCResult BrowserChild::RecvDynamicToolbarMaxHeightChanged(
     const ScreenIntCoord& aHeight) {
-#if defined(MOZ_WIDGET_ANDROID)
   mDynamicToolbarMaxHeight = aHeight;
 
   RefPtr<Document> document = GetTopLevelDocument();
@@ -1223,13 +1222,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvDynamicToolbarMaxHeightChanged(
   if (RefPtr<nsPresContext> presContext = document->GetPresContext()) {
     presContext->SetDynamicToolbarMaxHeight(aHeight);
   }
-#endif
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvDynamicToolbarOffsetChanged(
     const ScreenIntCoord& aOffset) {
-#if defined(MOZ_WIDGET_ANDROID)
   RefPtr<Document> document = GetTopLevelDocument();
   if (!document) {
     return IPC_OK();
@@ -1238,7 +1235,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvDynamicToolbarOffsetChanged(
   if (nsPresContext* presContext = document->GetPresContext()) {
     presContext->UpdateDynamicToolbarOffset(aOffset);
   }
-#endif
   return IPC_OK();
 }
 
