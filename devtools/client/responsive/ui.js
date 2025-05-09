@@ -55,6 +55,7 @@ loader.lazyRequireGetter(
 const RELOAD_CONDITION_PREF_PREFIX = "devtools.responsive.reloadConditions.";
 const RELOAD_NOTIFICATION_PREF =
   "devtools.responsive.reloadNotification.enabled";
+const USE_DYNAMIC_TOOLBAR_PREF = "devtools.responsive.dynamicToolbar.enabled";
 
 function debug(_msg) {
   // console.log(`RDM manager: ${_msg}`);
@@ -180,8 +181,12 @@ class ResponsiveUI {
     this.dynamicToolbar = doc.createElement("div");
     this.dynamicToolbar.classList.add("rdm-dynamic-toolbar", "dynamic-toolbar");
     this.dynamicToolbar.style.visibility = "hidden";
-    this.dynamicToolbar.style.height = "40px";
-    this.dynamicToolbarMaxHeight = this.dynamicToolbar.style.height;
+
+    if (Services.prefs.getBoolPref(USE_DYNAMIC_TOOLBAR_PREF)) {
+      this.dynamicToolbar.style.visibility = "visible";
+      this.dynamicToolbar.style.height = "40px";
+      this.dynamicToolbarMaxHeight = this.dynamicToolbar.style.height;
+    }
 
     // Create resizer handlers
     const resizeHandle = doc.createElement("div");
@@ -1071,6 +1076,18 @@ class ResponsiveUI {
     return this.browserWindow;
   }
 
+  clamp(min, max, value) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  onScrolled(deltaY) {
+    const maxHeight = parseInt(this.dynamicToolbarMaxHeight, 10);
+    const currentHeight = parseInt(this.dynamicToolbar.style.height, 10);
+    const newHeight = currentHeight + deltaY;
+    const newHeightClamped = this.clamp(0, maxHeight, newHeight);
+    this.dynamicToolbar.style.height = newHeightClamped + "px";
+  }
+
   async onTargetAvailable({ targetFront, isTargetSwitching }) {
     if (this.destroying) {
       return;
@@ -1085,6 +1102,10 @@ class ResponsiveUI {
 
       await this.restoreActorState(isTargetSwitching);
       this.emitForTests("responsive-ui-target-switch-done");
+
+      if (Services.prefs.getBoolPref(USE_DYNAMIC_TOOLBAR_PREF)) {
+        targetFront.on("scrolled", this.onScrolled.bind(this));
+      }
     }
   }
   // This just needed to setup watching for network resources,
