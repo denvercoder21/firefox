@@ -112,6 +112,14 @@ namespace InspectorUtils {
     unsigned long line,
     unsigned long column,
     UTF8String newBodyText);
+
+   // Update the amount of vertical space that is clipped or visibly obscured in the bottom portion
+   // of the view. Tells gecko where to put bottom fixed elements so they are fully visible.
+   // aOffset must be offset from the bottom edge of the ICB and it's negative.
+  [ChromeOnly] undefined setVerticalClipping(BrowsingContext? aContext,
+                                             long aOffset);
+  [ChromeOnly] undefined setDynamicToolbarMaxHeight(BrowsingContext? aContext,
+                                             long aHeight);
 };
 
 dictionary SupportsOptions {

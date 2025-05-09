@@ -9,6 +9,7 @@
 #include "inLayoutUtils.h"
 
 #include "gfxTextRun.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/dom/HTMLSlotElement.h"
 #include "nsArray.h"
 #include "nsContentList.h"
@@ -28,6 +29,8 @@
 #include "mozilla/PresShellInlines.h"
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/StyleSheetInlines.h"
+#include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/CSSBinding.h"
 #include "mozilla/dom/Element.h"
@@ -41,6 +44,7 @@
 #include "nsCSSProps.h"
 #include "nsCSSValue.h"
 #include "nsColor.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/ServoStyleSet.h"
 #include "nsLayoutUtils.h"
 #include "nsNameSpaceManager.h"
@@ -1081,5 +1085,49 @@ void InspectorUtils::ReplaceBlockRuleBodyTextInStylesheet(
     nsACString& aNewStyleSheetText) {
   Servo_ReplaceBlockRuleBodyTextInStylesheetText(
       &aStyleSheetText, aLine, aColumn, &aNewBodyText, &aNewStyleSheetText);
+}
+
+void InspectorUtils::SetVerticalClipping(GlobalObject&,
+                                         BrowsingContext* aContext,
+                                         mozilla::ScreenIntCoord aOffset) {
+  if (!aContext) {
+    return;
+  }
+
+  CanonicalBrowsingContext* canonical = aContext->Canonical();
+  if (!canonical) {
+    return;
+  }
+
+  BrowserParent* parent = canonical->GetBrowserParent();
+  if (!parent) {
+    return;
+  }
+  parent->DynamicToolbarOffsetChanged(aOffset);
+
+  RefPtr<nsIWidget> widget = canonical->GetParentProcessWidgetContaining();
+  if (!widget) {
+    return;
+  }
+  widget->DynamicToolbarOffsetChanged(aOffset);
+}
+
+void InspectorUtils::SetDynamicToolbarMaxHeight(
+    GlobalObject&, BrowsingContext* aContext, mozilla::ScreenIntCoord aHeight) {
+  if (!aContext) {
+    return;
+  }
+
+  CanonicalBrowsingContext* canonical = aContext->Canonical();
+  if (!canonical) {
+    return;
+  }
+
+  BrowserParent* parent = canonical->GetBrowserParent();
+  if (!parent) {
+    return;
+  }
+
+  parent->DynamicToolbarMaxHeightChanged(aHeight);
 }
 }  // namespace mozilla::dom

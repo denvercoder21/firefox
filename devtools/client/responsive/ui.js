@@ -105,6 +105,11 @@ class ResponsiveUI {
 
     this.dynamicToolbar = null;
     this.dynamicToolbarMaxHeight = 0;
+    InspectorUtils.setDynamicToolbarMaxHeight(
+      this.tab.linkedBrowser.browsingContext,
+      parseInt(this.dynamicToolbarMaxHeight, 10)
+    );
+
     EventEmitter.decorate(this);
   }
 
@@ -185,7 +190,16 @@ class ResponsiveUI {
     if (Services.prefs.getBoolPref(USE_DYNAMIC_TOOLBAR_PREF)) {
       this.dynamicToolbar.style.visibility = "visible";
       this.dynamicToolbar.style.height = "40px";
+      InspectorUtils.setVerticalClipping(
+        this.tab.linkedBrowser.browsingContext,
+        -parseInt(this.dynamicToolbar.style.height, 10)
+      );
+
       this.dynamicToolbarMaxHeight = this.dynamicToolbar.style.height;
+      InspectorUtils.setDynamicToolbarMaxHeight(
+        this.tab.linkedBrowser.browsingContext,
+        parseInt(this.dynamicToolbarMaxHeight, 10)
+      );
     }
 
     // Create resizer handlers
@@ -1086,6 +1100,11 @@ class ResponsiveUI {
     const newHeight = currentHeight + deltaY;
     const newHeightClamped = this.clamp(0, maxHeight, newHeight);
     this.dynamicToolbar.style.height = newHeightClamped + "px";
+
+    InspectorUtils.setVerticalClipping(
+      this.tab.linkedBrowser.browsingContext,
+      -newHeightClamped
+    );
   }
 
   async onTargetAvailable({ targetFront, isTargetSwitching }) {
