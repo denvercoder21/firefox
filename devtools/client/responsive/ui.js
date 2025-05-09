@@ -102,6 +102,8 @@ class ResponsiveUI {
     this.initialized = promise;
     this.resolveInited = resolve;
 
+    this.dynamicToolbar = null;
+    this.dynamicToolbarMaxHeight = 0;
     EventEmitter.decorate(this);
   }
 
@@ -174,6 +176,13 @@ class ResponsiveUI {
     rdmFrame.src = "chrome://devtools/content/responsive/toolbar.xhtml";
     rdmFrame.classList.add("rdm-toolbar");
 
+    // Create dynamic toolbar
+    this.dynamicToolbar = doc.createElement("div");
+    this.dynamicToolbar.classList.add("rdm-dynamic-toolbar", "dynamic-toolbar");
+    this.dynamicToolbar.style.visibility = "hidden";
+    this.dynamicToolbar.style.height = "40px";
+    this.dynamicToolbarMaxHeight = this.dynamicToolbar.style.height;
+
     // Create resizer handlers
     const resizeHandle = doc.createElement("div");
     resizeHandle.classList.add(
@@ -202,6 +211,7 @@ class ResponsiveUI {
     // Prepend the RDM iframe inside of the current tab's browser container.
     this.browserContainerEl.prepend(rdmFrame);
 
+    this.browserStackEl.append(this.dynamicToolbar);
     this.browserStackEl.append(resizeHandle);
     this.browserStackEl.append(resizeHandleX);
     this.browserStackEl.append(resizeHandleY);
@@ -311,6 +321,7 @@ class ResponsiveUI {
     this.resizeHandle.remove();
     this.resizeHandleX.remove();
     this.resizeHandleY.remove();
+    this.dynamicToolbar.remove();
 
     this.browserContainerEl.classList.remove("responsive-mode");
     this.browserStackEl.style.removeProperty("--rdm-width");
@@ -363,6 +374,7 @@ class ResponsiveUI {
     this.resizeHandle = null;
     this.resizeHandleX = null;
     this.resizeHandleY = null;
+    this.dynamicToolbar = null;
     this.resizeToolbarObserver = null;
 
     // Destroying the commands will close the devtools client used to speak with responsive emulation actor.
