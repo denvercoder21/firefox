@@ -403,6 +403,7 @@ interface nsIDOMWindowUtils : nsISupports {
    *
    * returns true if the page called prevent default on this touch event
    */
+  const unsigned long TOUCH_EVENT_ASYNC_ENABLED                          = 0x0001;
   [can_run_script]
   boolean sendTouchEvent(in AString aType,
                          in Array<uint32_t> aIdentifiers,
@@ -415,7 +416,8 @@ interface nsIDOMWindowUtils : nsISupports {
                          in Array<long> aTiltXs,
                          in Array<long> aTiltYs,
                          in Array<long> aTwists,
-                         in long aModifiers);
+                         in long aModifiers,
+                         [optional] in unsigned long aOptions);
 
   /**
    * The same as sendTouchEvent but sets input source to "pen" to mock Windows behavior.

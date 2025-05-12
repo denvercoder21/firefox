@@ -874,13 +874,13 @@ nsDOMWindowUtils::SendTouchEvent(
     const nsTArray<uint32_t>& aRxs, const nsTArray<uint32_t>& aRys,
     const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
     const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
-    const nsTArray<int32_t>& aTwists, int32_t aModifiers,
+    const nsTArray<int32_t>& aTwists, int32_t aModifiers, uint32_t aOptions,
     bool* aPreventDefault) {
   return SendTouchEventCommon(aType, aIdentifiers, aXs, aYs, aRxs, aRys,
                               aRotationAngles, aForces, aTiltXs, aTiltYs,
                               aTwists, aModifiers,
                               /* aIsPen */ false,
-                              /* aToWindow */ false, aPreventDefault);
+                              /* aToWindow */ false, aOptions, aPreventDefault);
 }
 
 NS_IMETHODIMP
@@ -896,7 +896,7 @@ nsDOMWindowUtils::SendTouchEventAsPen(const nsAString& aType,
       nsTArray{aRy}, nsTArray{aRotationAngle}, nsTArray{aForce},
       nsTArray{aTiltX}, nsTArray{aTiltY}, nsTArray{aTwist}, aModifier,
       /* aIsPen */ true,
-      /* aToWindow */ false, aPreventDefault);
+      /* aToWindow */ false, /* aOptions */ 0, aPreventDefault);
 }
 
 NS_IMETHODIMP
@@ -912,7 +912,7 @@ nsDOMWindowUtils::SendTouchEventToWindow(
                               aRotationAngles, aForces, aTiltXs, aTiltYs,
                               aTwists, aModifiers,
                               /* aIsPen */ false,
-                              /* aToWindow */ true, aPreventDefault);
+                              /* aToWindow */ true, /* aOptions */ 0, aPreventDefault);
 }
 
 nsresult nsDOMWindowUtils::SendTouchEventCommon(
@@ -922,7 +922,7 @@ nsresult nsDOMWindowUtils::SendTouchEventCommon(
     const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
     const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
     const nsTArray<int32_t>& aTwists, int32_t aModifiers, bool aIsPen,
-    bool aToWindow, bool* aPreventDefault) {
+    bool aToWindow, uint32_t aOptions, bool* aPreventDefault) {
   // get the widget to send the event to
   nsPoint offset;
   nsCOMPtr<nsIWidget> widget = GetWidget(&offset);
@@ -984,7 +984,8 @@ nsresult nsDOMWindowUtils::SendTouchEventCommon(
     return presShell->HandleEvent(view->GetFrame(), &event, false, &status);
   }
 
-  if (StaticPrefs::test_events_async_enabled()) {
+  if ((aOptions & TOUCH_EVENT_ASYNC_ENABLED) ||
+      StaticPrefs::test_events_async_enabled()) {
     status = widget->DispatchInputEvent(&event).mContentStatus;
   } else {
     nsresult rv = widget->DispatchEvent(&event, status);

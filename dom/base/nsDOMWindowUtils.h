@@ -104,7 +104,7 @@ class nsDOMWindowUtils final : public nsIDOMWindowUtils,
       const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
       const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
       const nsTArray<int32_t>& aTwists, int32_t aModifiers,
-      bool aIsPen, bool aToWindow,
+      bool aIsPen, bool aToWindow, uint32_t aOptions,
       bool* aPreventDefault);
 
   void ReportErrorMessageForWindow(const nsAString& aErrorMessage,
