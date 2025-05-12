@@ -148,8 +148,7 @@ add_task(async () => {
             [force],
             [tiltX],
             [tiltY],
-            [twist],
-            false /* modifiers */
+            [twist]
           );
           utils.sendTouchEvent(
             "touchend",
@@ -162,8 +161,7 @@ add_task(async () => {
             [force],
             [tiltX],
             [tiltY],
-            [twist],
-            false /* modifiers */
+            [twist]
           );
 
           ok(
@@ -193,8 +191,7 @@ add_task(async () => {
             [force],
             [tiltX],
             [tiltY],
-            [twist],
-            false /* modifiers */
+            [twist]
           );
           utils.sendTouchEvent(
             "touchend",
@@ -207,8 +204,7 @@ add_task(async () => {
             [force],
             [tiltX],
             [tiltY],
-            [twist],
-            false /* modifiers */
+            [twist]
           );
 
           ok(
