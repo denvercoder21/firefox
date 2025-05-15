@@ -45,6 +45,7 @@ interface nsIContentPermissionRequest;
 interface nsIObserver;
 
 webidl Animation;
+webidl APZTestData;
 webidl DOMRect;
 webidl Element;
 webidl EventTarget;
@@ -52,6 +53,11 @@ webidl Event;
 webidl Node;
 webidl NodeList;
 webidl Storage;
+
+[scriptable, function, uuid(8afdeab3-0b78-43b8-ae2b-1b6472beb8a9)]
+interface apzSendTouchEventCallback : nsISupports {
+  void onInputResultReady(in jsval data);
+};
 
 [builtinclass, scriptable, uuid(4d6732ca-9da7-4176-b8a1-8dde15cd0bf9)]
 interface nsIDOMWindowUtils : nsISupports {
@@ -403,7 +409,7 @@ interface nsIDOMWindowUtils : nsISupports {
    *
    * returns true if the page called prevent default on this touch event
    */
-  const unsigned long TOUCH_EVENT_ASYNC_ENABLED                          = 0x0001;
+  const unsigned long TOUCH_EVENT_ASYNC_ENABLED     = 0x0001;
   [can_run_script]
   boolean sendTouchEvent(in AString aType,
                          in Array<uint32_t> aIdentifiers,
@@ -417,7 +423,9 @@ interface nsIDOMWindowUtils : nsISupports {
                          in Array<long> aTiltYs,
                          in Array<long> aTwists,
                          in long aModifiers,
-                         [optional] in unsigned long aOptions);
+                         [optional] in unsigned long aOptions,
+                         [optional] in nsIObserver aObserver);
+                         //todo alex: change type of aOptions to bool
 
   /**
    * The same as sendTouchEvent but sets input source to "pen" to mock Windows behavior.

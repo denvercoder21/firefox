@@ -57,6 +57,43 @@ dictionary APZHitResult {
   unsigned long long scrollId;
 };
 
+[Exposed=Window]
+namespace APZHandledPlace {
+  // These constants should be kept in sync with mozilla::layers::APZHandledPlace
+  const byte UNHANDLED = 0;
+  const byte HANDLED_BY_ROOT = 1;
+  const byte HANDLED_BY_CONTENT = 2;
+  const byte INVALID = 3;
+  const byte LAST = 3;
+};
+
+[Exposed=Window]
+namespace SideBits {
+  // These constants should be kept in sync with mozilla::SideBits
+  const byte NONE = 0;
+  const byte TOP = 0x0001;
+  const byte RIGHT = 0x0002;
+  const byte BOTTOM = 0x0004;
+  const byte LEFT = 0x0008;
+  const byte TOP_BOTTOM = 0x0005;
+  const byte LEFT_RIGHT = 0x000A;
+  const byte ALL = 0x000F;
+};
+
+[Exposed=Window]
+namespace ScrollDirections {
+  // These constants should be kept in sync with mozilla::layers::ScrollDirection
+  const byte VERTICAL = 0x0001;
+  const byte HORIZONTAL = 0x0002;
+};
+
+[GenerateConversionToJS]
+dictionary APZHandledResult {
+  byte place;
+  byte scrollableDirections;
+  byte overscrollDirections;
+};
+
 dictionary APZSampledResult {
   float scrollOffsetX;
   float scrollOffsetY;
