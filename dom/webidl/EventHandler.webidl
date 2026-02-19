@@ -89,6 +89,7 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onscroll;
            attribute EventHandler onscrollend;
            attribute EventHandler onscrollsnapchange;
+           attribute EventHandler onscrollsnapchanging;
            attribute EventHandler onsecuritypolicyviolation;
            attribute EventHandler onseeked;
            attribute EventHandler onseeking;
