@@ -2063,6 +2063,7 @@ STATIC_ATOMS = [
     Atom("onprintPreviewUpdate", "onprintPreviewUpdate"),
     Atom("onscrollend", "onscrollend"),
     Atom("onscrollsnapchange", "onscrollsnapchange"),
+    Atom("onscrollsnapchanging", "onscrollsnapchanging"),
     Atom("onbeforetoggle", "onbeforetoggle"),
     # WebExtensions
     Atom("moz_extension", "moz-extension"),
