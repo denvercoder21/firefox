@@ -189,6 +189,16 @@ class ScrollContainerFrame::ScrollSnapChangeEvent : public Runnable {
   ScrollContainerFrame* mHelper;
 };
 
+class ScrollContainerFrame::ScrollSnapChangingEvent : public Runnable {
+ public:
+  NS_DECL_NSIRUNNABLE
+  explicit ScrollSnapChangingEvent(ScrollContainerFrame* aHelper);
+  void Revoke() { mHelper = nullptr; }
+
+ private:
+  ScrollContainerFrame* mHelper;
+};
+
 class ScrollContainerFrame::AsyncScrollPortEvent : public Runnable {
  public:
   NS_DECL_NSIRUNNABLE
@@ -5624,6 +5634,28 @@ void ScrollContainerFrame::FireScrollSnapChangeEvent() {
   EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext, &status);
 }
 
+void ScrollContainerFrame::PostScrollSnapChangingEvent() {
+  if (mScrollSnapChangingEvent.IsPending()) {
+    return;
+  }
+
+  // The ScrollSnapChangingEvent constructor registers itself.
+  mScrollSnapChangingEvent = MakeRefPtr<ScrollSnapChangingEvent>(this);
+}
+
+void ScrollContainerFrame::FireScrollSnapChangingEvent() {
+  MOZ_ASSERT(mScrollSnapChangingEvent.IsPending());
+  mScrollSnapChangingEvent.Forget();
+
+  RefPtr<nsPresContext> presContext = PresContext();
+  nsEventStatus status = nsEventStatus_eIgnore;
+  WidgetGUIEvent event(true, eScrollSnapChanging, nullptr);
+  event.mFlags.mBubbles = mIsRoot;
+  event.mFlags.mCancelable = false;
+  RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
+  EventDispatcher::Dispatch(target, presContext, &event, nullptr, &status);
+}
+
 void ScrollContainerFrame::ReloadChildFrames() {
   mScrolledFrame = nullptr;
   mHScrollbarBox = nullptr;
@@ -6136,12 +6168,16 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP ScrollEvent::Run() {
   return NS_OK;
 }
 
-
-
 ScrollContainerFrame::ScrollSnapChangeEvent::ScrollSnapChangeEvent(
     ScrollContainerFrame* aHelper)
     : Runnable("ScrollContainerFrame::ScrollSnapChangeEvent"),
       mHelper(aHelper) {
+  mHelper->PresShell()->PostScrollEvent(this);
+}
+
+ScrollContainerFrame::ScrollSnapChangingEvent::ScrollSnapChangingEvent(
+    ScrollContainerFrame* aHelper)
+    : Runnable("ScrollContainerFrame::ScrollSnapChangingEvent"), mHelper(aHelper) {
   mHelper->PresShell()->PostScrollEvent(this);
 }
 
@@ -6154,9 +6190,9 @@ ScrollContainerFrame::ScrollSnapChangeEvent::Run() {
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
-ScrollContainerFrame::ScrollSnapChangeEvent::Run() {
+ScrollContainerFrame::ScrollSnapChangingEvent::Run() {
   if (mHelper) {
-    mHelper->FireScrollSnapChangeEvent();
+    mHelper->FireScrollSnapChangingEvent();
   }
   return NS_OK;
 }
