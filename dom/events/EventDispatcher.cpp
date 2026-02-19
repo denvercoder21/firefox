@@ -20,6 +20,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
@@ -48,6 +49,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ScrollAreaEvent.h"
 #include "mozilla/dom/SimpleGestureEvent.h"
+#include "mozilla/dom/SnapEvent.h"
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/dom/TextEvent.h"
 #include "mozilla/dom/TimeEvent.h"
@@ -1569,6 +1571,8 @@ nsresult EventDispatcher::DispatchDOMEvent(EventTarget* aTarget,
       case eTouchEventClass:
         return NS_NewDOMTouchEvent(aOwner, aPresContext,
                                    aEvent->AsTouchEvent());
+      case eSnapEventClass:
+        return SnapEvent::Constructor(aOwner, aEventType, {});
       case eTransitionEventClass:
         return NS_NewDOMTransitionEvent(aOwner, aPresContext,
                                         aEvent->AsTransitionEvent());
