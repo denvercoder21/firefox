@@ -538,6 +538,8 @@ NON_IDL_EVENT(complete, eAudioComplete, EventNameType_None, eBasicEventClass)
 
 EVENT(scrollend, eScrollend, EventNameType_All, eBasicEventClass)
 
+EVENT(scrollsnapchange, eScrollSnapChange, EventNameType_All, eSnapEventClass)
+
 EVENT(mozorientationchange, eMozOrientationChange, EventNameType_All,
       eBasicEventClass)
 
