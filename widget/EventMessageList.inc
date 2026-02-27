@@ -502,6 +502,8 @@ NS_EVENT_MESSAGE(eEncrypted)
 NS_EVENT_MESSAGE(eWaitingForKey)
 
 NS_EVENT_MESSAGE(eScrollend)
+NS_EVENT_MESSAGE(eScrollSnapChange)
+NS_EVENT_MESSAGE(eScrollSnapChanging)
 
 // Legacy orientatipon events.
 NS_EVENT_MESSAGE(eMozOrientationChange)
