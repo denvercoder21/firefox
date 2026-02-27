@@ -337,8 +337,12 @@ const kEventConstructors = {
   ScrollAreaEvent:                           { create: null
                                                // Cannot create untrusted event from JS
                                              },
+  SnapEvent:                                 { create (aName, aProps) {
+                                                         return new SnapEvent(aName, aProps);
+                                                       },
+                                             },
   SpeechRecognitionErrorEvent:               { create (aName, aProps) {
-                                                         return new SpeechRecognitionErrorEvent(aName, { error: "no-speech", ...aProps });
+                                                        return new SpeechRecognitionErrorEvent(aName, { error: "no-speech", ...aProps });
                                                        },
                                              },
   SpeechRecognitionEvent:                    { create (aName, aProps) {
