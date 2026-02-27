@@ -11242,6 +11242,11 @@
   value: 0.750f
   mirror: always
 
+- name: layout.css.scroll-snap.snap-event.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether container scroll-state queries are enabled.
 - name: layout.css.scroll-state.enabled
   type: RelaxedAtomicBool
