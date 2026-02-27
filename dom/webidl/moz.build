@@ -305,6 +305,9 @@ with Files("ServiceWorker*"):
 with Files("SimpleGestureEvent.webidl"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
+with Files("SnapEvent.webidl"):
+    BUG_COMPONENT = ("Core", "Layout: Scrolling and Overflow")
+
 with Files("SocketCommon.webidl"):
     BUG_COMPONENT = ("Core", "DOM: Networking")
 
@@ -1301,6 +1304,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     "PromiseRejectionEvent.webidl",
     "PushSubscriptionChangeEvent.webidl",
     "SecurityPolicyViolationEvent.webidl",
+    "SnapEvent.webidl",
     "SubmitEvent.webidl",
     "TaskPriorityChangeEvent.webidl",
     "TCPServerSocketEvent.webidl",
