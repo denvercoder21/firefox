@@ -35,6 +35,9 @@ NS_EVENT_CLASS(Widget, MouseScrollEvent)
 NS_EVENT_CLASS(Widget, WheelEvent)
 NS_EVENT_CLASS(Widget, PointerEvent)
 
+// SnapEvent.h
+NS_EVENT_CLASS(Internal, SnapEvent)
+
 // TouchEvents.h
 NS_EVENT_CLASS(Widget, GestureNotifyEvent)
 NS_EVENT_CLASS(Widget, SimpleGestureEvent)
