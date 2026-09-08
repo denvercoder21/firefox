@@ -508,6 +508,12 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     INPQ_LOG("started new pan gesture block %p id %" PRIu64 " for target %p\n",
              block.get(), block->GetBlockId(), aTarget.get());
 
+    // Flag the block as synthesized from a pan-end so that consumers such as
+    // AsyncPanZoomController::OnPanBegin can tell that the gesture is over.
+    if (terminateSynthesizedBlock) {
+      block->SetWasSynthesizedFromPanEnd();
+    }
+
     if (event.mType == PanGestureInput::PANGESTURE_MAYSTART) {
       block->ConfirmForHoldGesture();
     }

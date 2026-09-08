@@ -2842,9 +2842,20 @@ nsEventStatus AsyncPanZoomController::OnPanBegin(
   // Do not change states until we are sure that a transform occurs.
   StateChangeNotificationBlocker blocker(this);
 
-  MOZ_ASSERT(GetCurrentPanGestureBlock());
-  GetCurrentPanGestureBlock()->GetOverscrollHandoffChain()->CancelAnimations(
-      ExcludeOverscroll);
+  PanGestureBlockState* block = GetCurrentPanGestureBlock();
+  MOZ_ASSERT(block);
+  // A block synthesized from a pan-end that arrived with no active block
+  // represents a gesture that has already ended, so there is nothing for it to
+  // interrupt. Cancelling here would destroy a running scroll-snap or
+  // overscroll snap-back animation and leave the scroll position stranded.
+  if (block->WasSynthesizedFromPanEnd()) {
+    APZC_LOG_DETAIL(
+        "OnPanBegin: block was synthesized from a pan-end, not cancelling "
+        "animations\n",
+        this);
+  } else {
+    block->GetOverscrollHandoffChain()->CancelAnimations(ExcludeOverscroll);
+  }
 
   StartTouch(aEvent.mLocalPanStartPoint, aEvent.mTimeStamp);
 
@@ -2999,6 +3010,15 @@ nsEventStatus AsyncPanZoomController::OnPan(
       // SmoothMsd scroll animations, enabling scripts that depend on
       // them to be responsive without forcing the user to wait for the momentum
       // scrolling to completely stop.
+      return nsEventStatus_eConsumeNoDefault;
+    }
+
+    PanGestureBlockState* block = GetCurrentPanGestureBlock();
+    if (block && block->WasSynthesizedFromPanEnd()) {
+      // A block synthesized from a pan-end that arrived with no
+      // active block stands for a gesture that has already ended, so it must
+      // not cancel the animation either. It also carries no displacement to
+      // apply.
       return nsEventStatus_eConsumeNoDefault;
     }
 

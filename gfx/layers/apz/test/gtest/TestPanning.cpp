@@ -8,6 +8,7 @@
 #include "FrameMetrics.h"
 #include "InputUtils.h"
 #include "gtest/gtest.h"
+#include "mozilla/ScrollPositionUpdate.h"
 #include "mozilla/ScrollSnapInfo.h"
 #include "mozilla/ServoComputedData.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
@@ -251,6 +252,66 @@ TEST_F(APZCPanningTester, DuplicatePanEndEvents_Bug1833950) {
   PanGesture(PanGestureInput::PANGESTURE_END, apzc, ScreenIntPoint(50, 80),
              ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
              /*aSimulateMomentum=*/true);
+}
+
+// A pan-end that arrives without an active pan gesture block is turned into a
+// synthesized block by InputQueue::ReceivePanGestureInput. Such a block stands
+// for a gesture that has already ended, so it must not cancel a running scroll
+// animation: doing so used to strand the scroll position between two
+// scroll-snap points when the fingers stopped moving but stayed on the
+// touchpad.
+TEST_F(APZCPanningTester, StrayPanEndPreservesSmoothMsdScroll_Bug2063083) {
+  FrameMetrics metrics = apzc->GetFrameMetrics();
+  metrics.SetCompositionBounds(ParentLayerRect(0, 0, 100, 100));
+  metrics.SetScrollableRect(CSSRect(0, 0, 100, 1000));
+  metrics.SetVisualScrollOffset(CSSPoint(0, 200));
+  metrics.SetIsRootContent(true);
+  apzc->SetFrameMetrics(metrics);
+
+  // With overscroll-behavior:none, the zero-delta pan-begin of the synthesized
+  // block can neither scroll nor overscroll, so it puts the APZC back into the
+  // NOTHING state and the synthesized pan-end is ignored. The scroll animation
+  // is then the only thing that can still move the scroll position, which is
+  // what makes the bug observable.
+  apzc->GetScrollMetadata().SetOverscrollBehavior(
+      OverscrollBehaviorInfo::FromStyleConstants(
+          StyleOverscrollBehavior::None, StyleOverscrollBehavior::None));
+
+  // Request a main-thread driven smooth scroll back to the top, of the kind
+  // scroll snapping uses.
+  ScrollMetadata metadata = apzc->GetScrollMetadata();
+  nsTArray<ScrollPositionUpdate> scrollUpdates;
+  scrollUpdates.AppendElement(ScrollPositionUpdate::NewSmoothScroll(
+      ScrollMode::SmoothMsd, ScrollOrigin::Other,
+      CSSPoint::ToAppUnits(CSSPoint(0, 0)), ScrollTriggeredByScript::Yes,
+      nullptr, ViewportType::Visual));
+  metadata.SetScrollUpdates(scrollUpdates);
+  metadata.GetMetrics().SetScrollGeneration(
+      scrollUpdates.LastElement().GetGeneration());
+  apzc->NotifyMainThreadTransaction(
+      metadata, AsyncPanZoomController::LayersUpdateFlags{
+                    .mIsFirstPaint = false, .mThisLayerTreeUpdated = true});
+
+  apzc->AssertInSmoothMsdScroll();
+
+  // Let the animation get partway to its destination.
+  SampleAnimationOneFrame();
+  float scrollYMidway = apzc->GetFrameMetrics().GetVisualScrollOffset().y;
+  EXPECT_LT(scrollYMidway, 200);
+  EXPECT_GT(scrollYMidway, 0);
+
+  // Send a pan-end with no preceding pan-start, the way GTK does when the
+  // fingers stop moving but stay on the touchpad.
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, ScreenIntPoint(50, 50),
+             ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
+             /*aSimulateMomentum=*/true);
+
+  // The animation should have survived, and should still reach its
+  // destination.
+  apzc->AssertInSmoothMsdScroll();
+  apzc->AdvanceAnimationsUntilEnd();
+  EXPECT_EQ(apzc->GetFrameMetrics().GetVisualScrollOffset().y, 0);
 }
 
 class APZCPanningTesterMock : public APZCTreeManagerTester {
