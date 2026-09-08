@@ -364,6 +364,13 @@ class PanGestureBlockState : public CancelableBlockState {
 
   bool WasInterrupted() const { return mInterrupted; }
 
+  void SetWasSynthesizedFromZeroDeltaPanEnd() {
+    mSynthesizedFromZeroDeltaPanEnd = true;
+  }
+  bool WasSynthesizedFromZeroDeltaPanEnd() const {
+    return mSynthesizedFromZeroDeltaPanEnd;
+  }
+
   void SetNeedsToWaitForContentResponse(bool aWaitForContentResponse);
   void SetNeedsToWaitForBrowserGestureResponse(
       bool aWaitForBrowserGestureResponse);
@@ -399,6 +406,10 @@ class PanGestureBlockState : public CancelableBlockState {
   // from the browser.
   bool mWaitingForBrowserGestureResponse;
   bool mStartedBrowserGesture;
+  // True if this block was synthesized from a zero-delta pan-end that arrived
+  // with no active block, i.e. it represents a gesture that has already
+  // finished.
+  bool mSynthesizedFromZeroDeltaPanEnd;
   ScrollDirections mAllowedScrollDirections;
 };
 

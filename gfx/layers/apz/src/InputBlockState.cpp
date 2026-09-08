@@ -525,7 +525,8 @@ PanGestureBlockState::PanGestureBlockState(
       mInterrupted(false),
       mWaitingForContentResponse(false),
       mWaitingForBrowserGestureResponse(false),
-      mStartedBrowserGesture(false) {
+      mStartedBrowserGesture(false),
+      mSynthesizedFromZeroDeltaPanEnd(false) {
   if (aFlags.mTargetConfirmed) {
     // Find the nearest APZC in the overscroll handoff chain that is scrollable.
     // If we get a content confirmation later that the apzc is different, then

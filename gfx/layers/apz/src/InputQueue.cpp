@@ -11,6 +11,7 @@
 #include "InputBlockState.h"
 #include "OverscrollHandoffState.h"
 #include "QueuedInput.h"
+#include "Units.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/RefPtr.h"
@@ -507,6 +508,13 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     block = new PanGestureBlockState(aTarget, aFlags, event);
     INPQ_LOG("started new pan gesture block %p id %" PRIu64 " for target %p\n",
              block.get(), block->GetBlockId(), aTarget.get());
+
+    // Flag the block as synthesized from a zero-delta pan-end so that consumers
+    // such as AsyncPanZoomController::OnPanBegin can tell that the gesture is
+    // over.
+    if (terminateSynthesizedBlock && aEvent.mPanDisplacement == ScreenPoint{}) {
+      block->SetWasSynthesizedFromZeroDeltaPanEnd();
+    }
 
     if (event.mType == PanGestureInput::PANGESTURE_MAYSTART) {
       block->ConfirmForHoldGesture();
