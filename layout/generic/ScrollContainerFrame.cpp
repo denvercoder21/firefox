@@ -52,6 +52,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ToString.h"
 #include "mozilla/ViewportUtils.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Element.h"
@@ -5607,20 +5608,6 @@ RefPtr<nsINode> ScrollContainerFrame::ScrollEventTargetNode(
   return mContent.get();
 }
 
-void ScrollContainerFrame::FireScrollEndEvent() {
-  MOZ_ASSERT(mScrollEndEvent);
-  mScrollEndEvent->Revoke();
-  mScrollEndEvent = nullptr;
-
-  RefPtr<nsPresContext> presContext = PresContext();
-  nsEventStatus status = nsEventStatus_eIgnore;
-  WidgetGUIEvent event(true, eScrollend, nullptr);
-  event.mFlags.mBubbles = mIsRoot;
-  event.mFlags.mCancelable = false;
-  RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
-  EventDispatcher::Dispatch(target, presContext, &event, nullptr, &status);
-}
-
 void ScrollContainerFrame::PostScrollSnapChangeEvent() {
   // todo alex: file spec issue
   if (mScrollSnapChangeEvent) {
@@ -5629,6 +5616,13 @@ void ScrollContainerFrame::PostScrollSnapChangeEvent() {
 
   // The ScrollSnapChangeEvent constructor registers itself.
   mScrollSnapChangeEvent = new ScrollSnapChangeEvent(this);
+}
+
+static nsIContent* ResolveSnapTargetToContent(const ScrollSnapTargetId& aId) {
+  if (aId == ScrollSnapTargetId::None) {
+    return nullptr;
+  }
+  return reinterpret_cast<nsIContent*>(aId);
 }
 
 void ScrollContainerFrame::FireScrollSnapChangeEvent() {
@@ -5640,11 +5634,39 @@ void ScrollContainerFrame::FireScrollSnapChangeEvent() {
   nsEventStatus status = nsEventStatus_eIgnore;
   RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
 
-  dom::SnapEventInit init;
   // todo alex: fill init with meaningful data (snap targets)
-  RefPtr<dom::SnapEvent> event = dom::SnapEvent::Constructor(target, u"scrollsnapchange"_ns, init);
+  dom::SnapEventInit init{};
+  init.mBubbles = mIsRoot;
+  init.mCancelable = false;
 
-  EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext, &status);
+  // storing snap targets should be done during PostScrollSnapChangeEvent() (i
+  // think) here we should just retrieve and write to init
+  //
+  // if (mLastSnapTargetIds) {
+  //   auto resolve = [this](const CopyableTArray<ScrollSnapTargetId>& aIds)
+  //       -> nsIContent* {
+  //     for (const auto id : aIds) {
+  //       auto* content = reinterpret_cast<nsIContent*>(id);
+  //       if (mSnapTargets.Contains(content)) {
+  //         return content;
+  //       }
+  //     }
+  //     return nullptr;
+  //   };
+  //   const WritingMode wm = GetWritingMode();
+  //   init.mSnapTargetBlock = resolve(mLastSnapTargetIds->IdsOnBlock(wm));
+  //   init.mSnapTargetInline = resolve(mLastSnapTargetIds->IdsOnInline(wm));
+  // }
+
+  init.mSnapTargetBlock =
+      ResolveSnapTargetToContent(mScrollSnapChangeTargetBlock);
+  init.mSnapTargetInline =
+      ResolveSnapTargetToContent(mScrollSnapChangeTargetInline);
+
+  RefPtr<dom::SnapEvent> event =
+      dom::SnapEvent::Constructor(target, u"scrollsnapchange"_ns, init);
+  EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext,
+                                    &status);
 }
 
 void ScrollContainerFrame::PostScrollSnapChangingEvent() {
@@ -5663,11 +5685,17 @@ void ScrollContainerFrame::FireScrollSnapChangingEvent() {
 
   RefPtr<nsPresContext> presContext = PresContext();
   nsEventStatus status = nsEventStatus_eIgnore;
-  WidgetGUIEvent event(true, eScrollSnapChanging, nullptr);
-  event.mFlags.mBubbles = mIsRoot;
-  event.mFlags.mCancelable = false;
   RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
-  EventDispatcher::Dispatch(target, presContext, &event, nullptr, &status);
+
+  // todo alex: fill init with meaningful data (snap targets)
+  dom::SnapEventInit init{};
+  init.mBubbles = mIsRoot;
+  init.mCancelable = false;
+
+  RefPtr<dom::SnapEvent> event =
+      dom::SnapEvent::Constructor(target, u"scrollsnapchanging"_ns, init);
+  EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext,
+                                    &status);
 }
 
 void ScrollContainerFrame::ReloadChildFrames() {
@@ -6186,13 +6214,14 @@ ScrollContainerFrame::ScrollSnapChangeEvent::ScrollSnapChangeEvent(
     ScrollContainerFrame* aHelper)
     : Runnable("ScrollContainerFrame::ScrollSnapChangeEvent"),
       mHelper(aHelper) {
-  mHelper->PresShell()->PostScrollEvent(this);
+  (void)mHelper->PresShell()->PostScrollEvent(this);
 }
 
 ScrollContainerFrame::ScrollSnapChangingEvent::ScrollSnapChangingEvent(
     ScrollContainerFrame* aHelper)
-    : Runnable("ScrollContainerFrame::ScrollSnapChangingEvent"), mHelper(aHelper) {
-  mHelper->PresShell()->PostScrollEvent(this);
+    : Runnable("ScrollContainerFrame::ScrollSnapChangingEvent"),
+      mHelper(aHelper) {
+  (void)mHelper->PresShell()->PostScrollEvent(this);
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
@@ -8181,6 +8210,17 @@ void ScrollContainerFrame::TryResnap() {
   if (auto snapDestination = GetSnapPointForResnap()) {
     // We are going to re-snap so that we need to clobber scroll anchoring.
     mAnchor.UserScrolled();
+
+    // compare with scrollsnapchanging targets
+    // - save current snap target as field in frame during GetCandidateInLastTargets
+    const mozilla::WritingMode wm = GetWritingMode();
+    auto newTargetInline = snapDestination->mTargetIds.IdsOnInline(wm);
+    auto netTargetBlock = snapDestination->mTargetIds.IdsOnBlock(wm);
+
+
+
+    // if targets changed, update scrollsnapchanging targets
+    // post scrollsnapchanging event
 
     // Snap to the nearest snap position if exists.
     ScrollToWithOrigin(
