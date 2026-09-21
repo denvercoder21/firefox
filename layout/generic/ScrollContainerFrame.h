@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ScrollOrigin.h"
 #include "mozilla/ScrollTypes.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/WindowBinding.h"  // for mozilla::dom::ScrollBehavior
 #include "mozilla/layout/ScrollAnchorContainer.h"
 #include "nsContainerFrame.h"
@@ -1408,8 +1409,6 @@ class ScrollContainerFrame : public nsContainerFrame,
   nsCOMPtr<Element> mScrollCornerContent;
   nsCOMPtr<Element> mResizerContent;
 
-  class ScrollEvent;
-  class ScrollEndEvent;
   class ScrollSnapChangeEvent;
   class ScrollSnapChangingEvent;
   class AsyncScrollPortEvent;
@@ -1657,6 +1656,19 @@ class ScrollContainerFrame : public nsContainerFrame,
   // in the case of the top level document.
   nsRect mScrollPort;
   UniquePtr<ScrollSnapTargetIds> mLastSnapTargetIds;
+
+  // Store scrollSnapChangingTargets
+  ScrollSnapTargetId mCurrentSnapTargetBlock = ScrollSnapTargetId::None;
+  ScrollSnapTargetId mCurrentSnapTargetInline = ScrollSnapTargetId::None;
+
+  // Store scrollSnapChangingTargets
+  ScrollSnapTargetId mScrollSnapChangingTargetBlock = ScrollSnapTargetId::None;
+  ScrollSnapTargetId mScrollSnapChangingTargetInline = ScrollSnapTargetId::None;
+
+  // Store scollSnapChangeTargets
+  ScrollSnapTargetId mScrollSnapChangeTargetBlock = ScrollSnapTargetId::None;
+  ScrollSnapTargetId mScrollSnapChangeTargetInline = ScrollSnapTargetId::None;
+
   // Lazily created on demand, see StickyScrollContainer::GetOrCreateForFrame.
   UniquePtr<StickyScrollContainer> mStickyContainer;
 };
