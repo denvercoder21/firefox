@@ -767,7 +767,7 @@ GetCandidateInLastTargets(
   const ScrollSnapInfo::SnapTarget* inlinePick{nullptr};
   const ScrollSnapInfo::SnapTarget* blockPick{nullptr};
   auto pickFromInline = [&]() {
-    const Maybe<nscoord>& blockCoord =
+    const Maybe<nscoord> blockCoord =
         blockPick ? blockPick->mSnapPoint.B(aWM) : Nothing();
     for (const auto* target : effective) {
       // When effective == blockSet, targets may not have an inline snap point.
@@ -786,7 +786,7 @@ GetCandidateInLastTargets(
   };
 
   auto pickFromBlock = [&]() {
-    const Maybe<nscoord>& inlineCoord =
+    const Maybe<nscoord> inlineCoord =
         inlinePick ? inlinePick->mSnapPoint.I(aWM) : Nothing();
     for (const auto* target : effective) {
       // When effective == inlineSet, targets may not have a block snap point.
