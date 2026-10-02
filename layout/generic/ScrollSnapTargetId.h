@@ -38,6 +38,17 @@ struct ScrollSnapTargetIds {
 struct SnapDestination {
   nsPoint mPosition;
   ScrollSnapTargetIds mTargetIds;
+  // The single target selected on each axis, as opposed to mTargetIds which
+  // holds every target aligned at mPosition.
+  ScrollSnapTargetId mSelectedIdOnX = ScrollSnapTargetId::None;
+  ScrollSnapTargetId mSelectedIdOnY = ScrollSnapTargetId::None;
+
+  ScrollSnapTargetId SelectedIdOnInline(WritingMode aWM) const {
+    return aWM.IsVertical() ? mSelectedIdOnY : mSelectedIdOnX;
+  }
+  ScrollSnapTargetId SelectedIdOnBlock(WritingMode aWM) const {
+    return aWM.IsVertical() ? mSelectedIdOnX : mSelectedIdOnY;
+  }
 };
 
 struct CSSSnapDestination {
