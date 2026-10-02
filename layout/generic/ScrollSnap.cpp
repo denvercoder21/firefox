@@ -918,6 +918,17 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForResnap(
         }
         return true;
       });
+  auto idOf = [](const SnapTarget* aTarget) {
+    return aTarget ? aTarget->mTargetId : ScrollSnapTargetId::None;
+  };
+  if (aWritingMode.IsVertical()) {
+    snapTarget.mSelectedIdOnX = idOf(blockTarget);
+    snapTarget.mSelectedIdOnY = idOf(inlineTarget);
+  } else {
+    snapTarget.mSelectedIdOnX = idOf(inlineTarget);
+    snapTarget.mSelectedIdOnY = idOf(blockTarget);
+  }
+
   return Some(snapTarget);
 }
 
