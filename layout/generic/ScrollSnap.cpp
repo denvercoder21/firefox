@@ -229,8 +229,10 @@ SnapDestination CalcSnapPoints::GetBestEdge(const nsSize& aSnapportSize) const {
     // edge. Thus they are valid snap positions.
     if (!visibleTargetIdsOnX.IsEmpty() && !visibleTargetIdsOnY.IsEmpty()) {
       return SnapDestination{
-          bestCandidate,
-          ScrollSnapTargetIds{visibleTargetIdsOnX, visibleTargetIdsOnY}};
+          .mPosition = bestCandidate,
+          .mTargetIds = {visibleTargetIdsOnX, visibleTargetIdsOnY},
+          .mSelectedIdOnX = visibleTargetIdsOnX[0],
+          .mSelectedIdOnY = visibleTargetIdsOnY[0]};
     }
 
     // Now we've already known that snapping to
@@ -258,21 +260,30 @@ SnapDestination CalcSnapPoints::GetBestEdge(const nsSize& aSnapportSize) const {
     if ((minimumDistanceOnX == nscoord_MAX) &&
         minimumDistanceOnY != nscoord_MAX) {
       bestCandidate.y = *mTrackerOnX.mBestEdges[minimumXIndex].mSnapPoint.mY;
-      return SnapDestination{bestCandidate,
-                             ScrollSnapTargetIds{minimumDistanceTargetIdsOnX,
-                                                 minimumDistanceTargetIdsOnX}};
+      // Both coordinates come from mTrackerOnX.mBestEdges[minimumXIndex], so
+      // the same element is the selected target on both axes.
+      return SnapDestination{.mPosition = bestCandidate,
+                             .mTargetIds = {minimumDistanceTargetIdsOnX,
+                                            minimumDistanceTargetIdsOnX},
+                             .mSelectedIdOnX = minimumDistanceTargetIdsOnX[0],
+                             .mSelectedIdOnY = minimumDistanceTargetIdsOnX[0]};
     }
 
     if (minimumDistanceOnX != nscoord_MAX &&
         minimumDistanceOnY == nscoord_MAX) {
       bestCandidate.x = *mTrackerOnY.mBestEdges[minimumYIndex].mSnapPoint.mX;
-      return SnapDestination{bestCandidate,
-                             ScrollSnapTargetIds{minimumDistanceTargetIdsOnY,
-                                                 minimumDistanceTargetIdsOnY}};
+      // Same as the X axis case above, a single element is the selected target
+      // on both axes.
+      return SnapDestination{.mPosition = bestCandidate,
+                             .mTargetIds = {minimumDistanceTargetIdsOnY,
+                                            minimumDistanceTargetIdsOnY},
+                             .mSelectedIdOnX = minimumDistanceTargetIdsOnY[0],
+                             .mSelectedIdOnY = minimumDistanceTargetIdsOnY[0]};
     }
 
     if (minimumDistanceOnX != nscoord_MAX &&
         minimumDistanceOnY != nscoord_MAX) {
+      ScrollSnapTargetId selectedId = ScrollSnapTargetId::None;
       // If we've found candidates on both axes, choose the closest point either
       // on X axis or Y axis from the scroll destination. I.e. choose
       // `minimumXIndex` one or `minimumYIndex` one to make at least one of
@@ -289,12 +300,20 @@ SnapDestination CalcSnapPoints::GetBestEdge(const nsSize& aSnapportSize) const {
                  NSCoordToFloat(mDestination.y -
                                 mTrackerOnY.mBestEdges[0].mPosition))) {
         bestCandidate.y = *mTrackerOnX.mBestEdges[minimumXIndex].mSnapPoint.mY;
+        selectedId = minimumDistanceTargetIdsOnX[0];
       } else {
         bestCandidate.x = *mTrackerOnY.mBestEdges[minimumYIndex].mSnapPoint.mX;
+        selectedId = minimumDistanceTargetIdsOnY[0];
       }
-      return SnapDestination{bestCandidate,
-                             ScrollSnapTargetIds{minimumDistanceTargetIdsOnX,
-                                                 minimumDistanceTargetIdsOnY}};
+      // Whichever axis won above supplied both coordinates, so its element is
+      // the selected target on both axes. Note the losing axis' ids are still
+      // reported in mTargetIds even though they are no longer aligned at
+      // bestCandidate.
+      return SnapDestination{.mPosition = bestCandidate,
+                             .mTargetIds = {minimumDistanceTargetIdsOnX,
+                                            minimumDistanceTargetIdsOnY},
+                             .mSelectedIdOnX = selectedId,
+                             .mSelectedIdOnY = selectedId};
     }
     MOZ_ASSERT_UNREACHABLE("There's at least one candidate on either axis");
     // `minimumDistanceOnX == nscoord_MAX && minimumDistanceOnY == nscoord_MAX`
@@ -303,18 +322,19 @@ SnapDestination CalcSnapPoints::GetBestEdge(const nsSize& aSnapportSize) const {
 
   nsPoint defaultPoint = GetDefaultSnapPoint();
   return SnapDestination{
-      nsPoint(mTrackerOnX.EdgeFound()
-                  ? mTrackerOnX.mBestEdges[0].mPosition
-                  // In the case of IntendedEndPosition (i.e. the destination
-                  // point is explicitely specied, e.g. scrollTo) use the
-                  // destination point if we didn't find any candidates.
-                  : defaultPoint.x,
-              mTrackerOnY.EdgeFound()
-                  ? mTrackerOnY.mBestEdges[0].mPosition
-                  // Same as above X axis case, use the destination point if we
-                  // didn't find any candidates.
-                  : defaultPoint.y),
-      ScrollSnapTargetIds{mTrackerOnX.mTargetIds, mTrackerOnY.mTargetIds}};
+      .mPosition =
+          // In the case of IntendedEndPosition (i.e. the destination is
+          // explicitly specified, e.g. scrollTo), use the destination point if
+          // we didn't find any candidates.
+      nsPoint{mTrackerOnX.EdgeFound() ? mTrackerOnX.mBestEdges[0].mPosition
+                                      : defaultPoint.x,
+              mTrackerOnY.EdgeFound() ? mTrackerOnY.mBestEdges[0].mPosition
+                                      : defaultPoint.y},
+      .mTargetIds = {mTrackerOnX.mTargetIds, mTrackerOnY.mTargetIds},
+      .mSelectedIdOnX = mTrackerOnX.EdgeFound() ? mTrackerOnX.mTargetIds[0]
+                                                : ScrollSnapTargetId::None,
+      .mSelectedIdOnY = mTrackerOnY.EdgeFound() ? mTrackerOnY.mTargetIds[0]
+                                                : ScrollSnapTargetId::None};
 }
 
 void CalcSnapPoints::AddHorizontalEdge(const SnapTarget& aTarget) {
