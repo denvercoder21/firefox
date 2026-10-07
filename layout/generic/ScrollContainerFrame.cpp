@@ -8188,29 +8188,47 @@ void ScrollContainerFrame::TryResnap() {
   // Same as in GetSnapPointForDestination, We can release the strong references
   // for the previous snap targets here.
   mSnapTargets.Clear();
-  if (auto snapDestination = GetSnapPointForResnap()) {
-    // We are going to re-snap so that we need to clobber scroll anchoring.
-    mAnchor.UserScrolled();
 
-    // compare with scrollsnapchanging targets
-    // - save current snap target as field in frame during GetCandidateInLastTargets
-    const mozilla::WritingMode wm = GetWritingMode();
-    auto newTargetInline = snapDestination->mTargetIds.IdsOnInline(wm);
-    auto netTargetBlock = snapDestination->mTargetIds.IdsOnBlock(wm);
+  auto snapDestination = GetSnapPointForResnap();
 
+  // Update the snapped targets and fire scrollsnapchange if they changed. This
+  // runs even when there is no snap destination, because a container that stops
+  // snapping has to report null targets.
+  const WritingMode wm = GetWritingMode();
+  const auto newTargetBlock = snapDestination
+                                  ? snapDestination->SelectedIdOnBlock(wm)
+                                  : ScrollSnapTargetId::None;
+  const auto newTargetInline = snapDestination
+                                   ? snapDestination->SelectedIdOnInline(wm)
+                                   : ScrollSnapTargetId::None;
 
-
-    // if targets changed, update scrollsnapchanging targets
-    // post scrollsnapchanging event
-
-    // Snap to the nearest snap position if exists.
-    ScrollToWithOrigin(
-        snapDestination->mPosition, nullptr /* range */,
-        ScrollOperationParams{
-            IsSmoothScroll(ScrollBehavior::Auto) ? ScrollMode::SmoothMsd
-                                                 : ScrollMode::Instant,
-            ScrollOrigin::Other, std::move(snapDestination->mTargetIds)});
+  bool snapTargetChanged = false;
+  if (mScrollSnapChangeTargetBlock != newTargetBlock) {
+    mScrollSnapChangeTargetBlock = newTargetBlock;
+    snapTargetChanged = true;
   }
+  if (mScrollSnapChangeTargetInline != newTargetInline) {
+    mScrollSnapChangeTargetInline = newTargetInline;
+    snapTargetChanged = true;
+  }
+  if (snapTargetChanged) {
+    PostScrollSnapChangeEvent();
+  }
+
+  if (!snapDestination) {
+    return;
+  }
+
+  // We are going to re-snap so that we need to clobber scroll anchoring.
+  mAnchor.UserScrolled();
+
+  // Snap to the nearest snap position if exists.
+  ScrollToWithOrigin(
+      snapDestination->mPosition, nullptr /* range */,
+      ScrollOperationParams{
+          IsSmoothScroll(ScrollBehavior::Auto) ? ScrollMode::SmoothMsd
+                                               : ScrollMode::Instant,
+          ScrollOrigin::Other, std::move(snapDestination->mTargetIds)});
 }
 
 void ScrollContainerFrame::PostPendingResnapIfNeeded(const nsIFrame* aFrame) {
