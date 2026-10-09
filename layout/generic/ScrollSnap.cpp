@@ -631,12 +631,12 @@ ScrollSnapTargetId ScrollSnapUtils::GetTargetIdFor(const nsIFrame* aFrame) {
   return ScrollSnapTargetId{reinterpret_cast<uintptr_t>(aFrame->GetContent())};
 }
 
-static const nsIContent* ResolveSnapTargetToContent(
+nsIContent* ScrollSnapUtils::ResolveSnapTargetToContent(
     const ScrollSnapTargetId& aId) {
   if (aId == ScrollSnapTargetId::None) {
     return nullptr;
   }
-  return reinterpret_cast<const nsIContent*>(aId);
+  return reinterpret_cast<nsIContent*>(aId);
 }
 
 static bool SnapTargetIsFlattenedTreeDescendantOf(
@@ -645,8 +645,8 @@ static bool SnapTargetIsFlattenedTreeDescendantOf(
   MOZ_ASSERT(aPossibleAncestor != ScrollSnapTargetId::None &&
              aPossibleDescendant != ScrollSnapTargetId::None);
   return nsContentUtils::ContentIsFlattenedTreeDescendantOf(
-      ResolveSnapTargetToContent(aPossibleDescendant),
-      ResolveSnapTargetToContent(aPossibleAncestor));
+      ScrollSnapUtils::ResolveSnapTargetToContent(aPossibleDescendant),
+      ScrollSnapUtils::ResolveSnapTargetToContent(aPossibleAncestor));
 }
 
 static std::pair<const SnapTarget*, const SnapTarget*>

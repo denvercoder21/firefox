@@ -1658,17 +1658,11 @@ class ScrollContainerFrame : public nsContainerFrame,
   nsRect mScrollPort;
   UniquePtr<ScrollSnapTargetIds> mLastSnapTargetIds;
 
-  // Store scrollSnapChangingTargets
-  ScrollSnapTargetId mCurrentSnapTargetBlock = ScrollSnapTargetId::None;
-  ScrollSnapTargetId mCurrentSnapTargetInline = ScrollSnapTargetId::None;
-
-  // Store scrollSnapChangingTargets
-  ScrollSnapTargetId mScrollSnapChangingTargetBlock = ScrollSnapTargetId::None;
-  ScrollSnapTargetId mScrollSnapChangingTargetInline = ScrollSnapTargetId::None;
-
-  // Store scollSnapChangeTargets
-  ScrollSnapTargetId mScrollSnapChangeTargetBlock = ScrollSnapTargetId::None;
-  ScrollSnapTargetId mScrollSnapChangeTargetInline = ScrollSnapTargetId::None;
+  // The elements snapped to on each axis, as reported by scrollsnapchange.
+  // These are strong refs because the event can be dispatched after the
+  // element has been removed from the DOM.
+  RefPtr<nsIContent> mScrollSnapChangeTargetBlock;
+  RefPtr<nsIContent> mScrollSnapChangeTargetInline;
 
   // Lazily created on demand, see StickyScrollContainer::GetOrCreateForFrame.
   UniquePtr<StickyScrollContainer> mStickyContainer;
