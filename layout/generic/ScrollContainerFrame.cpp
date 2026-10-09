@@ -5620,13 +5620,6 @@ void ScrollContainerFrame::PostScrollSnapChangeEvent() {
   mScrollSnapChangeEvent = MakeRefPtr<ScrollSnapChangeEvent>(this);
 }
 
-static nsIContent* ResolveSnapTargetToContent(const ScrollSnapTargetId& aId) {
-  if (aId == ScrollSnapTargetId::None) {
-    return nullptr;
-  }
-  return reinterpret_cast<nsIContent*>(aId);
-}
-
 void ScrollContainerFrame::FireScrollSnapChangeEvent() {
   MOZ_ASSERT(mScrollSnapChangeEvent.IsPending());
   mScrollSnapChangeEvent.Forget();
@@ -5640,10 +5633,8 @@ void ScrollContainerFrame::FireScrollSnapChangeEvent() {
   init.mBubbles = mIsRoot;
   init.mCancelable = false;
 
-  init.mSnapTargetBlock =
-      ResolveSnapTargetToContent(mScrollSnapChangeTargetBlock);
-  init.mSnapTargetInline =
-      ResolveSnapTargetToContent(mScrollSnapChangeTargetInline);
+  init.mSnapTargetBlock = mScrollSnapChangeTargetBlock;
+  init.mSnapTargetInline = mScrollSnapChangeTargetInline;
 
   RefPtr<dom::SnapEvent> event =
       dom::SnapEvent::Constructor(target, u"scrollsnapchange"_ns, init);
@@ -8194,13 +8185,23 @@ void ScrollContainerFrame::TryResnap() {
   // Update the snapped targets and fire scrollsnapchange if they changed. This
   // runs even when there is no snap destination, because a container that stops
   // snapping has to report null targets.
+  // Resolving the ids is only safe here: GetSnapPointForResnap repopulated
+  // mSnapTargets, which holds a strong ref to every snap target. By the time
+  // the event is dispatched that is no longer guaranteed, so hold the content
+  // strongly from now on.
+  auto resolve = [this](ScrollSnapTargetId aId) -> RefPtr<nsIContent> {
+    nsIContent* content = ScrollSnapUtils::ResolveSnapTargetToContent(aId);
+    MOZ_ASSERT_IF(content, mSnapTargets.Contains(content));
+    return content;
+  };
+
   const WritingMode wm = GetWritingMode();
-  const auto newTargetBlock = snapDestination
-                                  ? snapDestination->SelectedIdOnBlock(wm)
-                                  : ScrollSnapTargetId::None;
-  const auto newTargetInline = snapDestination
-                                   ? snapDestination->SelectedIdOnInline(wm)
-                                   : ScrollSnapTargetId::None;
+  const RefPtr<nsIContent> newTargetBlock =
+      resolve(snapDestination ? snapDestination->SelectedIdOnBlock(wm)
+                              : ScrollSnapTargetId::None);
+  const RefPtr<nsIContent> newTargetInline =
+      resolve(snapDestination ? snapDestination->SelectedIdOnInline(wm)
+                              : ScrollSnapTargetId::None);
 
   bool snapTargetChanged = false;
   if (mScrollSnapChangeTargetBlock != newTargetBlock) {
