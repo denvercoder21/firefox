@@ -8206,13 +8206,27 @@ void ScrollContainerFrame::SetLastSnapTargetIds(
 
 void ScrollContainerFrame::CommitSnapChangeTargets(
     ScrollSnapTargetId aOnBlock, ScrollSnapTargetId aOnInline) {
-  // Resolving ids to content is only safe while mSnapTargets still holds a
-  // strong ref to every snap target, which is why this happens here rather
-  // than when the event is dispatched.
+  // mSnapTargets is what keeps the content behind these ids alive, so an id is
+  // only safe to resolve while it is still a member. That holds right after we
+  // evaluated snap points ourselves, but not when APZ did the snapping, and
+  // not necessarily after a smooth scroll that took several ticks to land.
+  auto isKnown = [this](ScrollSnapTargetId aId) {
+    // Comparing the pointer never dereferences it, so this stays safe even if
+    // the content is already gone.
+    nsIContent* content = ScrollSnapUtils::ResolveSnapTargetToContent(aId);
+    return !content || mSnapTargets.Contains(content);
+  };
+  if (!isKnown(aOnBlock) || !isKnown(aOnInline)) {
+    // Re-evaluate the snap points so the ids can be checked against a current
+    // set of targets. Anything that has gone away stays out and resolves to
+    // null below.
+    mSnapTargets.Clear();
+    ComputeScrollSnapInfo();
+  }
+
   auto resolve = [this](ScrollSnapTargetId aId) -> RefPtr<nsIContent> {
     nsIContent* content = ScrollSnapUtils::ResolveSnapTargetToContent(aId);
-    MOZ_ASSERT_IF(content, mSnapTargets.Contains(content));
-    return content;
+    return content && mSnapTargets.Contains(content) ? content : nullptr;
   };
 
   RefPtr<nsIContent> onBlock = resolve(aOnBlock);
