@@ -23,6 +23,12 @@ enum class ScrollSnapTargetId : uintptr_t {
 struct ScrollSnapTargetIds {
   CopyableTArray<ScrollSnapTargetId> mIdsOnX;
   CopyableTArray<ScrollSnapTargetId> mIdsOnY;
+  // The single target selected on each axis, as opposed to mIdsOn{X,Y} which
+  // hold every target aligned at the snap position. These travel with the
+  // scroll operation so that they are committed only when it lands.
+  ScrollSnapTargetId mSelectedIdOnX = ScrollSnapTargetId::None;
+  ScrollSnapTargetId mSelectedIdOnY = ScrollSnapTargetId::None;
+
   bool operator==(const ScrollSnapTargetIds&) const = default;
   bool Contains(ScrollSnapTargetId aId) const {
     return mIdsOnX.Contains(aId) || mIdsOnY.Contains(aId);
@@ -33,22 +39,17 @@ struct ScrollSnapTargetIds {
   const CopyableTArray<ScrollSnapTargetId>& IdsOnBlock(WritingMode aWM) const {
     return aWM.IsVertical() ? mIdsOnX : mIdsOnY;
   }
-};
-
-struct SnapDestination {
-  nsPoint mPosition;
-  ScrollSnapTargetIds mTargetIds;
-  // The single target selected on each axis, as opposed to mTargetIds which
-  // holds every target aligned at mPosition.
-  ScrollSnapTargetId mSelectedIdOnX = ScrollSnapTargetId::None;
-  ScrollSnapTargetId mSelectedIdOnY = ScrollSnapTargetId::None;
-
   ScrollSnapTargetId SelectedIdOnInline(WritingMode aWM) const {
     return aWM.IsVertical() ? mSelectedIdOnY : mSelectedIdOnX;
   }
   ScrollSnapTargetId SelectedIdOnBlock(WritingMode aWM) const {
     return aWM.IsVertical() ? mSelectedIdOnX : mSelectedIdOnY;
   }
+};
+
+struct SnapDestination {
+  nsPoint mPosition;
+  ScrollSnapTargetIds mTargetIds;
 };
 
 struct CSSSnapDestination {

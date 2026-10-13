@@ -2403,6 +2403,22 @@ void ScrollContainerFrame::SetTransformingByAPZ(bool aTransforming) {
 void ScrollContainerFrame::CompleteAsyncScroll(
     const nsPoint& aStartPosition, const nsRect& aRange,
     UniquePtr<ScrollSnapTargetIds> aSnapTargetIds, ScrollOrigin aOrigin) {
+  // The scroll has landed, so the targets it was aiming for are now the ones
+  // we are actually snapped to. Commit them before |aSnapTargetIds| is moved
+  // away.
+  //
+  // Only scrolls that actually snapped carry targets. Scrolls that did no
+  // snapping at all arrive here with empty ids, and must not be mistaken for
+  // "no longer snapped to anything" -- that case is committed explicitly by
+  // TryResnap instead.
+  if (aSnapTargetIds &&
+      (aSnapTargetIds->mSelectedIdOnX != ScrollSnapTargetId::None ||
+       aSnapTargetIds->mSelectedIdOnY != ScrollSnapTargetId::None)) {
+    const WritingMode wm = GetWritingMode();
+    CommitSnapChangeTargets(aSnapTargetIds->SelectedIdOnBlock(wm),
+                            aSnapTargetIds->SelectedIdOnInline(wm));
+  }
+
   SetLastSnapTargetIds(std::move(aSnapTargetIds));
 
   bool scrollPositionChanged = mDestination != aStartPosition;
@@ -5625,6 +5641,7 @@ void ScrollContainerFrame::PostScrollSnapChangeEvent() {
     return;
   }
 
+  // todo alex bug 2014498: file spec issue
   if (mScrollSnapChangeEvent.IsPending()) {
     return;
   }
@@ -8187,6 +8204,34 @@ void ScrollContainerFrame::SetLastSnapTargetIds(
   mLastSnapTargetIds = std::move(aIds);
 }
 
+void ScrollContainerFrame::CommitSnapChangeTargets(
+    ScrollSnapTargetId aOnBlock, ScrollSnapTargetId aOnInline) {
+  // Resolving ids to content is only safe while mSnapTargets still holds a
+  // strong ref to every snap target, which is why this happens here rather
+  // than when the event is dispatched.
+  auto resolve = [this](ScrollSnapTargetId aId) -> RefPtr<nsIContent> {
+    nsIContent* content = ScrollSnapUtils::ResolveSnapTargetToContent(aId);
+    MOZ_ASSERT_IF(content, mSnapTargets.Contains(content));
+    return content;
+  };
+
+  RefPtr<nsIContent> onBlock = resolve(aOnBlock);
+  RefPtr<nsIContent> onInline = resolve(aOnInline);
+
+  bool changed = false;
+  if (mScrollSnapChangeTargetBlock != onBlock) {
+    mScrollSnapChangeTargetBlock = std::move(onBlock);
+    changed = true;
+  }
+  if (mScrollSnapChangeTargetInline != onInline) {
+    mScrollSnapChangeTargetInline = std::move(onInline);
+    changed = true;
+  }
+  if (changed) {
+    PostScrollSnapChangeEvent();
+  }
+}
+
 bool ScrollContainerFrame::IsLastSnappedTarget(const nsIFrame* aFrame) const {
   ScrollSnapTargetId id = ScrollSnapUtils::GetTargetIdFor(aFrame);
   MOZ_ASSERT(id != ScrollSnapTargetId::None,
@@ -8214,43 +8259,16 @@ void ScrollContainerFrame::TryResnap() {
 
   auto snapDestination = GetSnapPointForResnap();
 
-  // Update the snapped targets and fire scrollsnapchange if they changed. This
-  // runs even when there is no snap destination, because a container that stops
-  // snapping has to report null targets.
-  // Resolving the ids is only safe here: GetSnapPointForResnap repopulated
-  // mSnapTargets, which holds a strong ref to every snap target. By the time
-  // the event is dispatched that is no longer guaranteed, so hold the content
-  // strongly from now on.
-  auto resolve = [this](ScrollSnapTargetId aId) -> RefPtr<nsIContent> {
-    nsIContent* content = ScrollSnapUtils::ResolveSnapTargetToContent(aId);
-    MOZ_ASSERT_IF(content, mSnapTargets.Contains(content));
-    return content;
-  };
-
-  const WritingMode wm = GetWritingMode();
-  const RefPtr<nsIContent> newTargetBlock =
-      resolve(snapDestination ? snapDestination->SelectedIdOnBlock(wm)
-                              : ScrollSnapTargetId::None);
-  const RefPtr<nsIContent> newTargetInline =
-      resolve(snapDestination ? snapDestination->SelectedIdOnInline(wm)
-                              : ScrollSnapTargetId::None);
-
-  bool snapTargetChanged = false;
-  if (mScrollSnapChangeTargetBlock != newTargetBlock) {
-    mScrollSnapChangeTargetBlock = newTargetBlock;
-    snapTargetChanged = true;
-  }
-  if (mScrollSnapChangeTargetInline != newTargetInline) {
-    mScrollSnapChangeTargetInline = newTargetInline;
-    snapTargetChanged = true;
-  }
-  if (snapTargetChanged) {
-    PostScrollSnapChangeEvent();
-  }
-
   if (!snapDestination) {
+    // Nothing to snap to anymore, e.g. scroll-snap-type became none. There is
+    // no scroll to wait for, so commit right away.
+    CommitSnapChangeTargets(ScrollSnapTargetId::None, ScrollSnapTargetId::None);
     return;
   }
+
+  // The selected targets travel with the scroll operation inside mTargetIds and
+  // are committed by CompleteAsyncScroll once it lands, so that an interrupted
+  // scroll never reports a snap that did not happen.
 
   // We are going to re-snap so that we need to clobber scroll anchoring.
   mAnchor.UserScrolled();
