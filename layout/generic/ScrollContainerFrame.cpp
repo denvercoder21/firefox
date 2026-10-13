@@ -5621,7 +5621,10 @@ RefPtr<nsINode> ScrollContainerFrame::ScrollEventTargetNode(
 }
 
 void ScrollContainerFrame::PostScrollSnapChangeEvent() {
-  // todo alex bug 2014498: file spec issue
+  if (!StaticPrefs::layout_css_scroll_snap_snap_event_enabled()) {
+    return;
+  }
+
   if (mScrollSnapChangeEvent.IsPending()) {
     return;
   }
@@ -5653,6 +5656,10 @@ void ScrollContainerFrame::FireScrollSnapChangeEvent() {
 }
 
 void ScrollContainerFrame::PostScrollSnapChangingEvent() {
+  if (!StaticPrefs::layout_css_scroll_snap_snap_event_enabled()) {
+    return;
+  }
+
   if (mScrollSnapChangingEvent.IsPending()) {
     return;
   }
