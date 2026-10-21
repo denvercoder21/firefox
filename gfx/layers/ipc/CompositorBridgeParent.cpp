@@ -76,6 +76,7 @@
 #endif
 #include "mozilla/Hal.h"
 #include "mozilla/HalTypes.h"
+#include "mozilla/NeverDestroyed.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/ipc/ProtocolTypes.h"
@@ -103,9 +104,15 @@ using base::ProcessId;
 StaticMonitor CompositorBridgeParent::sIndirectLayerTreesLock;
 
 /* static */
-MOZ_RUNINIT CompositorBridgeParent::LayerTreeMap
-    CompositorBridgeParent::sIndirectLayerTrees MOZ_GUARDED_BY(
-        CompositorBridgeParent::sIndirectLayerTreesLock);
+CompositorBridgeParent::LayerTreeMap&
+CompositorBridgeParent::IndirectLayerTrees() {
+  // Never destroyed so that exiting the process from an arbitrary thread (e.g.
+  // a GL driver calling exit()) doesn't tear down layer tree state, which
+  // requires sending IPC messages from the compositor thread. The map is
+  // cleared explicitly in FinishShutdown().
+  static NeverDestroyed<LayerTreeMap> sIndirectLayerTrees;
+  return *sIndirectLayerTrees;
+}
 
 void EraseLayerState(LayersId aId);
 
@@ -182,7 +189,7 @@ template <typename Lambda>
 inline void CompositorBridgeParent::ForEachIndirectLayerTree(
     const Lambda& aCallback) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  for (auto it = sIndirectLayerTrees.begin(); it != sIndirectLayerTrees.end();
+  for (auto it = IndirectLayerTrees().begin(); it != IndirectLayerTrees().end();
        it++) {
     LayerTreeState* state = &it->second;
     if (state->mParent == this) {
@@ -195,7 +202,7 @@ inline void CompositorBridgeParent::ForEachIndirectLayerTree(
 inline void CompositorBridgeParent::ForEachWebRenderBridgeParent(
     const Lambda& aCallback) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  for (auto& it : sIndirectLayerTrees) {
+  for (auto& it : IndirectLayerTrees()) {
     LayerTreeState* state = &it.second;
     if (state->mWrBridge) {
       aCallback(state->mWrBridge);
@@ -208,7 +215,7 @@ void CompositorBridgeParent::FinishShutdown() {
 
   // TODO: this should be empty by now...
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  sIndirectLayerTrees.clear();
+  IndirectLayerTrees().clear();
 }
 
 CompositorBridgeParent::CompositorBridgeParent(
@@ -516,7 +523,7 @@ void CompositorBridgeParent::ActorDestroy(ActorDestroyReason why) {
 
   {  // scope lock
     StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-    sIndirectLayerTrees.erase(mRootLayerTreeID);
+    IndirectLayerTrees().erase(mRootLayerTreeID);
   }
 
   // There are chances that the ref count reaches zero on the main thread
@@ -711,7 +718,7 @@ RefPtr<CompositorBridgeParent>
 CompositorBridgeParent::GetCompositorBridgeParentFromWindowId(
     const wr::WindowId& aWindowId) {
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  for (auto it = sIndirectLayerTrees.begin(); it != sIndirectLayerTrees.end();
+  for (auto it = IndirectLayerTrees().begin(); it != IndirectLayerTrees().end();
        it++) {
     LayerTreeState* state = &it->second;
     if (!state->mWrBridge) {
@@ -876,8 +883,8 @@ void CompositorBridgeParent::NotifyVsync(const VsyncEvent& aVsync,
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  auto it = sIndirectLayerTrees.find(aLayersId);
-  if (it == sIndirectLayerTrees.end()) return;
+  auto it = IndirectLayerTrees().find(aLayersId);
+  if (it == IndirectLayerTrees().end()) return;
 
   CompositorBridgeParent* cbp = it->second.mParent;
   if (!cbp || !cbp->mWidget) return;
@@ -895,8 +902,8 @@ void CompositorBridgeParent::ScheduleForcedComposition(
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  auto it = sIndirectLayerTrees.find(aLayersId);
-  if (it == sIndirectLayerTrees.end()) {
+  auto it = IndirectLayerTrees().find(aLayersId);
+  if (it == IndirectLayerTrees().end()) {
     return;
   }
 
@@ -920,8 +927,8 @@ void CompositorBridgeParent::ScheduleForcedComposition(
   }
 
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  auto it = sIndirectLayerTrees.find(layersId);
-  if (it != sIndirectLayerTrees.end()) {
+  auto it = IndirectLayerTrees().find(layersId);
+  if (it != IndirectLayerTrees().end()) {
     MOZ_ASSERT_IF(it->second.mWrBridge, it->second.mWrBridge == aWrBridge);
     it->second.mWrBridge = nullptr;
     it->second.mWebRenderAPI = nullptr;
@@ -931,9 +938,9 @@ void CompositorBridgeParent::ScheduleForcedComposition(
 void CompositorBridgeParent::DisconnectApzcTreeManager(
     APZCTreeManagerParent* aTreeManager) {
   StaticMonitorAutoLock lock(CompositorBridgeParent::sIndirectLayerTreesLock);
-  auto iter = CompositorBridgeParent::sIndirectLayerTrees.find(
+  auto iter = CompositorBridgeParent::IndirectLayerTrees().find(
       aTreeManager->GetLayersId());
-  if (iter == CompositorBridgeParent::sIndirectLayerTrees.end()) {
+  if (iter == CompositorBridgeParent::IndirectLayerTrees().end()) {
     return;
   }
 
@@ -961,7 +968,7 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvNotifyChildRecreated(
   {
     StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
 
-    if (sIndirectLayerTrees.find(aChild) != sIndirectLayerTrees.end()) {
+    if (IndirectLayerTrees().find(aChild) != IndirectLayerTrees().end()) {
       LAYERTREE_LOG("Layer tree {:x} cannot be recreated, it already exists",
                     aChild);
       NS_WARNING("Invalid to register the same layer tree twice");
@@ -979,7 +986,8 @@ LayersId CompositorBridgeParent::NotifyChildCreated(LayersId aChild,
                                                     LayersId aEmbedderId,
                                                     const char* aMessage) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  LayerTreeState& state = sIndirectLayerTrees.try_emplace(aChild).first->second;
+  LayerTreeState& state =
+      IndirectLayerTrees().try_emplace(aChild).first->second;
   LayersId oldEmbedder = state.mEmbedderLayersId;
   LAYERTREE_LOG(
       "Layer tree {:x} attached to root layer tree {:x} by {}, embedder {:x}",
@@ -1021,7 +1029,7 @@ void CompositorBridgeParent::CollectEmbeddedChildNamespaces(
     return;
   }
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  for (const auto& [layersId, state] : sIndirectLayerTrees) {
+  for (const auto& [layersId, state] : IndirectLayerTrees()) {
     if (state.mEmbedderLayersId == aEmbedder) {
       aOut.AppendElement(wr::AsPipelineId(layersId).mNamespace);
     }
@@ -1499,8 +1507,8 @@ void EraseLayerState(LayersId aId) {
 void CompositorBridgeParent::DeallocateLayerTreeId(LayersId aId) {
   MOZ_ASSERT(NS_IsMainThread());
   // Here main thread notifies compositor to remove an element from
-  // sIndirectLayerTrees. This removed element might be queried soon.
-  // Checking the elements of sIndirectLayerTrees exist or not before using.
+  // IndirectLayerTrees(). This removed element might be queried soon.
+  // Checking the elements of IndirectLayerTrees() exist or not before using.
   if (!CompositorThread()) {
     gfxCriticalError() << "Attempting to post to an invalid Compositor Thread";
     return;
@@ -1551,8 +1559,8 @@ void CompositorBridgeParent::SetControllerForLayerTree(
 already_AddRefed<IAPZCTreeManager> CompositorBridgeParent::GetAPZCTreeManager(
     LayersId aLayersId) {
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  LayerTreeMap::iterator cit = sIndirectLayerTrees.find(aLayersId);
-  if (sIndirectLayerTrees.end() == cit) {
+  LayerTreeMap::iterator cit = IndirectLayerTrees().find(aLayersId);
+  if (IndirectLayerTrees().end() == cit) {
     return nullptr;
   }
   LayerTreeState* lts = &cit->second;
@@ -1803,8 +1811,8 @@ CompositorBridgeParent::GetAsyncImagePipelineManager() const {
 /* static */ CompositorBridgeParent::LayerTreeState*
 CompositorBridgeParent::GetLayerTreeStateInternal(LayersId aId) {
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  LayerTreeMap::iterator cit = sIndirectLayerTrees.find(aId);
-  if (sIndirectLayerTrees.end() == cit) {
+  LayerTreeMap::iterator cit = IndirectLayerTrees().find(aId);
+  if (IndirectLayerTrees().end() == cit) {
     return nullptr;
   }
   return &cit->second;
@@ -1833,8 +1841,8 @@ bool CompositorBridgeParent::CallWithLayerTreeState(
   // ensure that the *storage* for the LayerTreeState remains stable, since we
   // should always hold the lock when adding/removing entries to the map.
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
-  LayerTreeMap::iterator cit = sIndirectLayerTrees.find(aId);
-  if (sIndirectLayerTrees.end() == cit) {
+  LayerTreeMap::iterator cit = IndirectLayerTrees().find(aId);
+  if (IndirectLayerTrees().end() == cit) {
     return false;
   }
   aFunc(cit->second);
@@ -1845,8 +1853,8 @@ bool CompositorBridgeParent::CallWithLayerTreeState(
 CompositorBridgeParent::GetLayerTreeStateUnderLock(
     LayersId aId, const StaticMonitorAutoLock& aProofOfLock) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  LayerTreeMap::iterator it = sIndirectLayerTrees.find(aId);
-  if (sIndirectLayerTrees.end() == it) {
+  LayerTreeMap::iterator it = IndirectLayerTrees().find(aId);
+  if (IndirectLayerTrees().end() == it) {
     return nullptr;
   }
   return &it->second;
@@ -1856,13 +1864,13 @@ CompositorBridgeParent::GetLayerTreeStateUnderLock(
 CompositorBridgeParent::EnsureLayerTreeStateUnderLock(
     LayersId aId, const StaticMonitorAutoLock& aProofOfLock) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  return sIndirectLayerTrees.try_emplace(aId).first->second;
+  return IndirectLayerTrees().try_emplace(aId).first->second;
 }
 
 /* static */ void CompositorBridgeParent::EraseLayerTreeStateUnderLock(
     LayersId aId, const StaticMonitorAutoLock& aProofOfLock) {
   sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-  sIndirectLayerTrees.erase(aId);
+  IndirectLayerTrees().erase(aId);
 }
 
 static CompositorBridgeParent::LayerTreeState* GetStateForRoot(
