@@ -508,7 +508,7 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase {
   static void ForEachLayerTreeStateUnderLock(
       const StaticMonitorAutoLock& aProofOfLock, Function&& aFn) {
     sIndirectLayerTreesLock.AssertCurrentThreadOwns();
-    for (auto& entry : sIndirectLayerTrees) {
+    for (auto& entry : IndirectLayerTrees()) {
       aFn(entry.first, entry.second);
     }
   }
@@ -671,8 +671,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase {
 
  private:
   static StaticMonitor sIndirectLayerTreesLock;
-  static LayerTreeMap sIndirectLayerTrees
-      MOZ_GUARDED_BY(sIndirectLayerTreesLock);
+  static LayerTreeMap& IndirectLayerTrees()
+      MOZ_REQUIRES(sIndirectLayerTreesLock);
 
  protected:
   /**
