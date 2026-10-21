@@ -226,6 +226,19 @@ void RenderThread::Start(uint32_t aNamespace) {
   RefPtr<Runnable> runnable = WrapRunnable(
       RefPtr<RenderThread>(sRenderThread.get()), &RenderThread::InitDeviceTask);
   sRenderThread->PostRunnable(runnable.forget());
+
+  // TEMPORARY repro hook for bug 2079811: emulate a GL driver calling exit().
+  if (const char* delay = getenv("MOZ_TEST_RENDERER_EXIT_MS")) {
+    thread->DelayedDispatch(
+        NS_NewRunnableFunction("TestRendererExit",
+                               []() {
+                                 printf_stderr(
+                                     "TestRendererExit: calling exit(0) on "
+                                     "Renderer thread\n");
+                                 exit(0);
+                               }),
+        atoi(delay));
+  }
 }
 
 // static
