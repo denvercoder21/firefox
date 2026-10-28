@@ -1045,6 +1045,12 @@ class ScrollContainerFrame : public nsContainerFrame,
 
   void SetLastSnapTargetIds(UniquePtr<ScrollSnapTargetIds> aId);
 
+  // Records the targets we are now snapped to and posts a scrollsnapchange
+  // event if they differ from the previous ones. Only called where the outcome
+  // is final: when a scroll has landed, or when no scroll is needed at all.
+  void CommitSnapChangeTargets(ScrollSnapTargetId aOnBlock,
+                               ScrollSnapTargetId aOnInline);
+
   static void SetScrollbarVisibility(nsIFrame* aScrollbar, bool aVisible);
 
   /**
@@ -1663,7 +1669,6 @@ class ScrollContainerFrame : public nsContainerFrame,
   RefPtr<nsIContent> mScrollSnapChangeTargetBlock;
   RefPtr<nsIContent> mScrollSnapChangeTargetInline;
 
-  // These are strong refs because the event can be dispatched after the
   // Lazily created on demand, see StickyScrollContainer::GetOrCreateForFrame.
   UniquePtr<StickyScrollContainer> mStickyContainer;
 };
