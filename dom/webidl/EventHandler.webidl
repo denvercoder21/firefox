@@ -90,6 +90,8 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onscrollend;
            [Pref="layout.css.scroll-snap.snap-event.enabled"]
            attribute EventHandler onscrollsnapchange;
+           [Pref="layout.css.scroll-snap.snap-event.enabled"]
+           attribute EventHandler onscrollsnapchanging;
            attribute EventHandler onsecuritypolicyviolation;
            attribute EventHandler onseeked;
            attribute EventHandler onseeking;
