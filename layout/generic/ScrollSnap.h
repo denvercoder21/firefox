@@ -59,6 +59,11 @@ struct ScrollSnapUtils {
 
   static ScrollSnapTargetId GetTargetIdFor(const nsIFrame* aFrame);
 
+  // Returns the content |aId| was created from, or nullptr for
+  // ScrollSnapTargetId::None. The caller is responsible for ensuring the
+  // content is still alive, e.g. via ScrollContainerFrame::mSnapTargets.
+  static nsIContent* ResolveSnapTargetToContent(const ScrollSnapTargetId& aId);
+
   // Post a pending re-snap request if the given |aFrame| is one of the snap
   // points on the last scroll operation.
   static void PostPendingResnapIfNeededFor(nsIFrame* aFrame);
