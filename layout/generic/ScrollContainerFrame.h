@@ -1188,6 +1188,9 @@ class ScrollContainerFrame : public nsContainerFrame,
   void PostScrollSnapChangeEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrollSnapChangeEvent();
 
+  void PostScrollSnapChangingEvent();
+  MOZ_CAN_RUN_SCRIPT void FireScrollSnapChangingEvent();
+
   // Add display items for the top-layer (which includes things like
   // the fullscreen element, its backdrop, and text selection carets)
   // to |aLists|.
@@ -1407,12 +1410,14 @@ class ScrollContainerFrame : public nsContainerFrame,
   nsCOMPtr<Element> mResizerContent;
 
   class ScrollSnapChangeEvent;
+  class ScrollSnapChangingEvent;
   class AsyncScrollPortEvent;
   class ScrolledAreaEvent;
 
   uint32_t mScrollEventGeneration = 0;
   uint32_t mScrollEndEventGeneration = 0;
   nsRevocableEventPtr<ScrollSnapChangeEvent> mScrollSnapChangeEvent;
+  nsRevocableEventPtr<ScrollSnapChangingEvent> mScrollSnapChangingEvent;
   nsRevocableEventPtr<AsyncScrollPortEvent> mAsyncScrollPortEvent;
   nsRevocableEventPtr<ScrolledAreaEvent> mScrolledAreaEvent;
   nsScrollbarFrame* mHScrollbarBox;
