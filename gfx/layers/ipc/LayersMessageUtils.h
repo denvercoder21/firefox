@@ -278,7 +278,7 @@ struct ParamTraits<mozilla::APZScrollAnimationType>
           mozilla::APZScrollAnimationType::TriggeredByUserInput> {};
 
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::ScrollSnapTargetIds, mIdsOnX,
-                                  mIdsOnY);
+                                  mIdsOnY, mSelectedIdOnX, mSelectedIdOnY);
 
 template <>
 struct ParamTraits<mozilla::layers::RepaintRequest>
