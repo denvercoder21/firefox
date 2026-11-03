@@ -177,6 +177,12 @@ class ScrollEndEvent : public ScrollEvent {
   using ScrollEvent::ScrollEvent;
 };
 
+class ScrollSnapChangeEvent : public ScrollEvent {
+ public:
+  NS_DECL_NSIRUNNABLE
+  using ScrollEvent::ScrollEvent;
+};
+
 class ScrollContainerFrame::ScrollSnapChangingEvent : public Runnable {
  public:
   NS_DECL_NSIRUNNABLE
@@ -5615,6 +5621,39 @@ RefPtr<nsINode> ScrollContainerFrame::ScrollEventTargetNode(
   return mContent.get();
 }
 
+void ScrollContainerFrame::PostScrollSnapChangeEvent() {
+  if (!StaticPrefs::layout_css_scroll_snap_snap_event_enabled()) {
+    return;
+  }
+
+  auto* ps = PresShell();
+  if (mScrollSnapChangeEventGeneration == ps->GetScrollEventGeneration()) {
+    return;
+  }
+
+  RefPtr event = MakeRefPtr<ScrollSnapChangeEvent>(
+      ScrollEventTargetNode(RootTargetsDocument::Yes));
+  mScrollSnapChangeEventGeneration = ps->PostScrollEvent(event);
+}
+
+void ScrollContainerFrame::FireScrollSnapChangeEvent() {
+  RefPtr<nsPresContext> presContext = PresContext();
+  nsEventStatus status = nsEventStatus_eIgnore;
+  RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
+
+  dom::SnapEventInit init{};
+  init.mBubbles = mIsRoot;
+  init.mCancelable = false;
+
+  init.mSnapTargetBlock = mScrollSnapChangeTargetBlock;
+  init.mSnapTargetInline = mScrollSnapChangeTargetInline;
+
+  RefPtr<dom::SnapEvent> event =
+      dom::SnapEvent::Constructor(target, u"scrollsnapchange"_ns, init);
+  EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext,
+                                    &status);
+}
+
 void ScrollContainerFrame::PostScrollSnapChangingEvent() {
   if (!StaticPrefs::layout_css_scroll_snap_snap_event_enabled()) {
     return;
@@ -6171,6 +6210,21 @@ ScrollContainerFrame::ScrollSnapChangingEvent::ScrollSnapChangingEvent(
     : Runnable("ScrollContainerFrame::ScrollSnapChangingEvent"),
       mHelper(aHelper) {
   (void)mHelper->PresShell()->PostScrollEvent(this);
+}
+
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP ScrollSnapChangeEvent::Run() {
+  ScrollContainerFrame* sf = nullptr;
+  if (mTarget->IsDocument()) {
+    if (PresShell* ps = mTarget->AsDocument()->GetPresShell()) {
+      sf = ps->GetRootScrollContainerFrame();
+    }
+  } else {
+    sf = nsLayoutUtils::FindScrollContainerFrameFor(mTarget->AsContent());
+  }
+  if (sf) {
+    sf->FireScrollSnapChangeEvent();
+  }
+  return NS_OK;
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP

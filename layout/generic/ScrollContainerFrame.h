@@ -27,6 +27,7 @@ class nsIContent;
 class nsILayoutHistoryState;
 class nsAtom;
 class AutoContainsBlendModeCapturer;
+class ScrollSnapChangeEvent;
 
 namespace mozilla {
 struct nsDisplayListCollection;
@@ -79,6 +80,7 @@ class ScrollContainerFrame : public nsContainerFrame,
   friend ScrollContainerFrame* ::NS_NewScrollContainerFrame(
       mozilla::PresShell* aPresShell, ComputedStyle* aStyle, bool aIsRoot);
   friend class layout::ScrollAnchorContainer;
+  friend class ::ScrollSnapChangeEvent;
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(ScrollContainerFrame)
@@ -1188,6 +1190,9 @@ class ScrollContainerFrame : public nsContainerFrame,
   void PostOrDeferScrollEndEvent();
   void PostOverflowEvent();
 
+  void PostScrollSnapChangeEvent();
+  MOZ_CAN_RUN_SCRIPT void FireScrollSnapChangeEvent();
+
   void PostScrollSnapChangingEvent();
   MOZ_CAN_RUN_SCRIPT void FireScrollSnapChangingEvent();
 
@@ -1417,6 +1422,7 @@ class ScrollContainerFrame : public nsContainerFrame,
 
   uint32_t mScrollEventGeneration = 0;
   uint32_t mScrollEndEventGeneration = 0;
+  uint32_t mScrollSnapChangeEventGeneration = 0;
   nsRevocableEventPtr<ScrollSnapChangingEvent> mScrollSnapChangingEvent;
   nsRevocableEventPtr<AsyncScrollPortEvent> mAsyncScrollPortEvent;
   nsRevocableEventPtr<ScrolledAreaEvent> mScrolledAreaEvent;
@@ -1656,6 +1662,13 @@ class ScrollContainerFrame : public nsContainerFrame,
   // in the case of the top level document.
   nsRect mScrollPort;
   UniquePtr<ScrollSnapTargetIds> mLastSnapTargetIds;
+
+  // The elements snapped to on each axis, as reported by scrollsnapchange.
+  // These are strong refs because the event can be dispatched after the
+  // element has been removed from the DOM.
+  RefPtr<nsIContent> mScrollSnapChangeTargetBlock;
+  RefPtr<nsIContent> mScrollSnapChangeTargetInline;
+
   // Lazily created on demand, see StickyScrollContainer::GetOrCreateForFrame.
   UniquePtr<StickyScrollContainer> mStickyContainer;
 };
