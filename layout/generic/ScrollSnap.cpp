@@ -858,13 +858,23 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForResnap(
       GetCandidateInLastTargets(aSnapInfo, aCurrentPosition, aLastSnapTargetIds,
                                 aFocusedContent, aTargetContent, aWritingMode);
 
+  auto idOf = [](const SnapTarget* aTarget) {
+    return aTarget ? aTarget->mTargetId : ScrollSnapTargetId::None;
+  };
+
   Maybe<nscoord> x, y;
+  ScrollSnapTargetId selectedIdOnX = ScrollSnapTargetId::None;
+  ScrollSnapTargetId selectedIdOnY = ScrollSnapTargetId::None;
   if (aWritingMode.IsVertical()) {
     x = blockTarget ? blockTarget->mSnapPoint.mX : Nothing();
     y = inlineTarget ? inlineTarget->mSnapPoint.mY : Nothing();
+    selectedIdOnX = idOf(blockTarget);
+    selectedIdOnY = idOf(inlineTarget);
   } else {
     x = inlineTarget ? inlineTarget->mSnapPoint.mX : Nothing();
     y = blockTarget ? blockTarget->mSnapPoint.mY : Nothing();
+    selectedIdOnX = idOf(inlineTarget);
+    selectedIdOnY = idOf(blockTarget);
   }
   if (!x && !y) {
     // In the worst case there's no longer valid snap points previously snapped,
@@ -902,13 +912,17 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForResnap(
     auto finalPos = calcSnapPoints.GetBestEdge(aSnapInfo.mSnapportSize);
     if (!x) {
       x = Some(finalPos.mPosition.x);
+      selectedIdOnX = finalPos.mTargetIds.mSelectedIdOnX;
     }
     if (!y) {
       y = Some(finalPos.mPosition.y);
+      selectedIdOnY = finalPos.mTargetIds.mSelectedIdOnY;
     }
   }
 
-  SnapDestination snapTarget{nsPoint(*x, *y)};
+  SnapDestination snapTarget{
+      .mPosition = nsPoint(*x, *y),
+      .mTargetIds = {{}, {}, selectedIdOnX, selectedIdOnY}};
   // Collect snap points where the position is still same as the new snap
   // position.
   aSnapInfo.ForEachValidTargetFor(
