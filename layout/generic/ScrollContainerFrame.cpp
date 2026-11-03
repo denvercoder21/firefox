@@ -59,6 +59,8 @@
 #include "mozilla/dom/HTMLOptionElement.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "mozilla/dom/ScrollTimeline.h"
+#include "mozilla/dom/SnapEvent.h"
+#include "mozilla/dom/SnapEventBinding.h"
 #include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZPublicUtils.h"
@@ -173,6 +175,16 @@ class ScrollEndEvent : public ScrollEvent {
  public:
   NS_DECL_NSIRUNNABLE
   using ScrollEvent::ScrollEvent;
+};
+
+class ScrollContainerFrame::ScrollSnapChangeEvent : public Runnable {
+ public:
+  NS_DECL_NSIRUNNABLE
+  explicit ScrollSnapChangeEvent(ScrollContainerFrame* aHelper);
+  void Revoke() { mHelper = nullptr; }
+
+ private:
+  ScrollContainerFrame* mHelper;
 };
 
 class ScrollContainerFrame::AsyncScrollPortEvent : public Runnable {
@@ -5595,6 +5607,40 @@ RefPtr<nsINode> ScrollContainerFrame::ScrollEventTargetNode(
   return mContent.get();
 }
 
+void ScrollContainerFrame::PostScrollSnapChangeEvent() {
+  if (!StaticPrefs::layout_css_scroll_snap_snap_event_enabled()) {
+    return;
+  }
+
+  if (mScrollSnapChangeEvent.IsPending()) {
+    return;
+  }
+
+  // The ScrollSnapChangeEvent constructor registers itself.
+  mScrollSnapChangeEvent = MakeRefPtr<ScrollSnapChangeEvent>(this);
+}
+
+void ScrollContainerFrame::FireScrollSnapChangeEvent() {
+  MOZ_ASSERT(mScrollSnapChangeEvent.IsPending());
+  mScrollSnapChangeEvent.Forget();
+
+  RefPtr<nsPresContext> presContext = PresContext();
+  nsEventStatus status = nsEventStatus_eIgnore;
+  RefPtr<nsINode> target = ScrollEventTargetNode(RootTargetsDocument::Yes);
+
+  dom::SnapEventInit init{};
+  init.mBubbles = mIsRoot;
+  init.mCancelable = false;
+
+  init.mSnapTargetBlock = mScrollSnapChangeTargetBlock;
+  init.mSnapTargetInline = mScrollSnapChangeTargetInline;
+
+  RefPtr<dom::SnapEvent> event =
+      dom::SnapEvent::Constructor(target, u"scrollsnapchange"_ns, init);
+  EventDispatcher::DispatchDOMEvent(target, nullptr, event, presContext,
+                                    &status);
+}
+
 void ScrollContainerFrame::ReloadChildFrames() {
   mScrolledFrame = nullptr;
   mHScrollbarBox = nullptr;
@@ -6107,6 +6153,21 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP ScrollEvent::Run() {
   event.mFlags.mBubbles = !mTarget->IsElement();
   EventDispatcher::Dispatch(MOZ_KnownLive(mTarget), pc, &event, nullptr,
                             &status);
+  return NS_OK;
+}
+
+ScrollContainerFrame::ScrollSnapChangeEvent::ScrollSnapChangeEvent(
+    ScrollContainerFrame* aHelper)
+    : Runnable("ScrollContainerFrame::ScrollSnapChangeEvent"),
+      mHelper(aHelper) {
+  (void)mHelper->PresShell()->PostScrollEvent(this);
+}
+
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
+ScrollContainerFrame::ScrollSnapChangeEvent::Run() {
+  if (mHelper) {
+    mHelper->FireScrollSnapChangeEvent();
+  }
   return NS_OK;
 }
 
