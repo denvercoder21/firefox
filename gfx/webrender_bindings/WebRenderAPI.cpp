@@ -215,8 +215,8 @@ RefPtr<WebRenderAPI::CreatePromise> WebRenderAPI::Create(
     RefPtr<layers::CompositorBridgeParent> aBridge,
     RefPtr<widget::CompositorWidget> aWidget, const wr::WrWindowId& aWindowId,
     LayoutDeviceIntSize aSize, layers::WindowKind aWindowKind) {
-  MOZ_ASSERT(aBridge);
-  MOZ_ASSERT(aWidget);
+  MOZ_RELEASE_ASSERT(aBridge);
+  MOZ_RELEASE_ASSERT(aWidget);
   static_assert(
       sizeof(size_t) == sizeof(uintptr_t),
       "The FFI bindings assume size_t is the same size as uintptr_t!");
@@ -310,29 +310,38 @@ RefPtr<WebRenderAPI::CreatePromise> WebRenderAPI::Create(
                 renderThread->GetRenderBackendPool(),
                 renderThread->GlyphRasterThread().Raw(), &WebRenderMallocSizeOf,
                 &WebRenderMallocEnclosingSizeOf, 0, compositor.get(),
-                compositor->ShouldUseNativeCompositor(),
-                compositor->UsePartialPresent(),
-                compositor->GetMaxPartialPresentRects(),
-                compositor->ShouldDrawPreviousPartialPresentRegions(),
-                &docHandle, &wrRenderer, &maxTextureSize, &errorMessage,
+                compositor->ShouldUseNativeCompositor(), &docHandle,
+                &wrRenderer, &maxTextureSize, &errorMessage,
                 StaticPrefs::gfx_webrender_enable_gpu_markers_AtStartup(),
                 panic_on_gl_error, picTileWidth, picTileHeight,
                 gfx::gfxVars::WebRenderRequiresHardwareDriver(),
                 StaticPrefs::gfx_webrender_low_quality_pinch_zoom_AtStartup(),
                 StaticPrefs::gfx_webrender_max_shared_surface_size_AtStartup(),
                 StaticPrefs::gfx_webrender_enable_subpixel_aa_AtStartup(),
-                compositor->ShouldUseLayerCompositor(),
                 limitSdrYuvExternalComposites)) {
           // wr_window_new puts a message into gfxCriticalNote if it returns
           // false
           MOZ_ASSERT(errorMessage);
+          if (!errorMessage) {
+            return CreatePromise::CreateAndReject(
+                "wr_window_new unknown error"_ns, __func__);
+          }
+
           error.AssignASCII(errorMessage);
           wr_api_free_error_msg(errorMessage);
           return CreatePromise::CreateAndReject(error, __func__);
         }
-        MOZ_ASSERT(wrRenderer);
-        MOZ_ASSERT(docHandle);
 
+        MOZ_ASSERT(wrRenderer);
+        if (!wrRenderer) {
+          return CreatePromise::CreateAndReject(
+              "wr_window_new without wrRenderer"_ns, __func__);
+        }
+        MOZ_ASSERT(docHandle);
+        if (!wrRenderer) {
+          return CreatePromise::CreateAndReject(
+              "wr_window_new without docHandle"_ns, __func__);
+        }
         const WebRenderBackend backend = compositor->BackendType();
         const WebRenderCompositor compositorType = compositor->CompositorType();
         const bool useANGLE = compositor->UseANGLE();
@@ -530,7 +539,7 @@ layers::AsyncImagePipelineOps* WebRenderAPI::GetPendingAsyncImagePipelineOps(
 
 bool WebRenderAPI::CheckIsRemoteTextureReady(
     layers::RemoteTextureInfoList* aList, const TimeStamp& aTimeStamp) {
-  MOZ_ASSERT(layers::CompositorThreadHolder::IsInCompositorThread());
+  MOZ_RELEASE_ASSERT(layers::CompositorThreadHolder::IsInCompositorThread());
   MOZ_ASSERT(aList);
 
   RefPtr<WebRenderAPI> self = this;
@@ -576,7 +585,7 @@ bool WebRenderAPI::CheckIsRemoteTextureReady(
 
 void WebRenderAPI::WaitRemoteTextureReady(
     layers::RemoteTextureInfoList* aList) {
-  MOZ_ASSERT(layers::CompositorThreadHolder::IsInCompositorThread());
+  MOZ_RELEASE_ASSERT(layers::CompositorThreadHolder::IsInCompositorThread());
   MOZ_ASSERT(aList);
 
   while (!aList->mList.empty()) {
@@ -1295,14 +1304,32 @@ void DisplayListBuilder::End(layers::DisplayListData& aOutTransaction) {
   dlInternerDelta.inner.data = nullptr;
 }
 
-Maybe<wr::WrSpatialId> DisplayListBuilder::PushStackingContext(
-    const wr::StackingContextParams& aParams, const wr::LayoutRect& aBounds,
-    const wr::RasterSpace& aRasterSpace) {
-  WRDL_LOG(
-      "PushStackingContext b=%s t=%s id=0x%" PRIx64 "\n", mWrState,
-      ToString(aBounds).c_str(),
-      aParams.mTransformPtr ? ToString(*aParams.mTransformPtr).c_str() : "none",
-      aParams.animation ? aParams.animation->id : 0);
+wr::WrSpatialId DisplayListBuilder::DefineReferenceFrame(
+    const wr::LayoutPoint& aOrigin, const ReferenceFrameParams& aParams) {
+  auto spatialId = wr_dp_define_reference_frame(
+      mWrState, mCurrentSpaceAndClipChain.space, aOrigin, &aParams);
+  WRDL_LOG("DefineReferenceFrame id=%zu o=%s t=%s anim=%" PRIu64 "\n", mWrState,
+           spatialId.id, ToString(aOrigin).c_str(),
+           ToString(aParams.transform).c_str(), aParams.animation_id);
+  return spatialId;
+}
+
+wr::WrSpatialId DisplayListBuilder::DefineComputedFrame(
+    const wr::LayoutPoint& aOrigin, const wr::WrComputedTransformData& aData) {
+  auto spatialId = wr_dp_define_computed_frame(
+      mWrState, mCurrentSpaceAndClipChain.space, aOrigin, &aData);
+  WRDL_LOG("DefineComputedFrame id=%zu o=%s\n", mWrState, spatialId.id,
+           ToString(aOrigin).c_str());
+  return spatialId;
+}
+
+void DisplayListBuilder::PushStackingContext(
+    const wr::StackingContextParams& aParams,
+    const wr::RasterSpace& aRasterSpace,
+    const Maybe<wr::WrSpatialId>& aSpatialId) {
+  WRDL_LOG("PushStackingContext space=%zu anim=%" PRIu64 "\n", mWrState,
+           aSpatialId.valueOr(mCurrentSpaceAndClipChain.space).id,
+           aParams.animation ? aParams.animation->id : 0);
 
   // Diagnostics for bug 2031107: validate FFI inputs before crossing into
   // Rust to distinguish C++-side invariant violations from corruption that
@@ -1319,18 +1346,16 @@ Maybe<wr::WrSpatialId> DisplayListBuilder::PushStackingContext(
           alignof(wr::WrFilterData) ==
       0);
 
-  auto spatialId = wr_dp_push_stacking_context(
-      mWrState, aBounds, mCurrentSpaceAndClipChain.space, &aParams,
-      aParams.mTransformPtr, aParams.mFilters.Elements(),
-      aParams.mFilters.Length(), aParams.mFilterDatas.Elements(),
-      aParams.mFilterDatas.Length(), aRasterSpace);
-
-  return spatialId.id != 0 ? Some(spatialId) : Nothing();
+  wr_dp_push_stacking_context(
+      mWrState, aSpatialId.valueOr(mCurrentSpaceAndClipChain.space), &aParams,
+      aParams.mFilters.Elements(), aParams.mFilters.Length(),
+      aParams.mFilterDatas.Elements(), aParams.mFilterDatas.Length(),
+      aRasterSpace);
 }
 
-void DisplayListBuilder::PopStackingContext(bool aIsReferenceFrame) {
+void DisplayListBuilder::PopStackingContext() {
   WRDL_LOG("PopStackingContext\n", mWrState);
-  wr_dp_pop_stacking_context(mWrState, aIsReferenceFrame);
+  wr_dp_pop_stacking_context(mWrState);
 }
 
 wr::WrClipChainId DisplayListBuilder::DefineClipChain(
@@ -1368,6 +1393,25 @@ wr::WrClipId DisplayListBuilder::DefineRoundedRectClip(
   return wr_dp_define_rounded_rect_clip(
       mWrState, aSpace.valueOr(mCurrentSpaceAndClipChain.space), aComplex,
       aAntiAliased);
+}
+
+wr::WrClipId DisplayListBuilder::DefinePathClip(
+    Span<const wr::PathCommand> aCommands, Span<const wr::LayoutPoint> aPoints,
+    const wr::LayoutRect& aAabb, const wr::LayoutRect& aRect,
+    wr::FillRule aFillRule) {
+  return wr_dp_define_path_clip(mWrState, mCurrentSpaceAndClipChain.space,
+                                aCommands.Elements(), aCommands.Length(),
+                                aPoints.Elements(), aPoints.Length(), aAabb,
+                                aRect, aFillRule);
+}
+
+wr::WrClipId DisplayListBuilder::DefineBorderClip(
+    const wr::LayoutRect& aRect, const wr::LayoutSideOffsets& aWidths,
+    const Range<const wr::BorderSide>& aSides, const wr::BorderRadius& aRadius,
+    const wr::LayoutSideOffsets& aInset) {
+  return wr_dp_define_border_clip(mWrState, mCurrentSpaceAndClipChain.space,
+                                  aRect, aWidths, aSides[0], aSides[1],
+                                  aSides[2], aSides[3], aRadius, aInset);
 }
 
 wr::WrClipId DisplayListBuilder::DefineRectClip(Maybe<wr::WrSpatialId> aSpace,

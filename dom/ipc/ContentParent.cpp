@@ -55,6 +55,9 @@
 #include "mozilla/PageloadEvent.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/ProcInfoParent.h"
+#endif
 #include "mozilla/ProcessHangMonitor.h"
 #include "mozilla/ProcessHangMonitorIPC.h"
 #include "mozilla/ProfilerLabels.h"
@@ -644,7 +647,6 @@ static const char* sObserverTopics[] = {
     "private-cookie-changed",
     NS_NETWORK_LINK_TYPE_TOPIC,
     NS_NETWORK_TRR_MODE_CHANGED_TOPIC,
-    "network:socket-process-crashed",
     DEFAULT_TIMEZONE_CHANGED_OBSERVER_TOPIC,
 };
 
@@ -1563,6 +1565,21 @@ void ContentParent::Init() {
 
   (void)SendInitProfiler(ProfilerParent::CreateForProcess(OtherPid()));
 
+#ifdef MOZ_WIDGET_ANDROID
+  // On Android content processes may be isolated, meaning we must create a
+  // ProcInfoParent to allow GetProcInfo() to query the process info remotely.
+  Endpoint<PProcInfoParent> procInfoParent;
+  Endpoint<PProcInfoChild> procInfoChild;
+  if (NS_SUCCEEDED(PProcInfo::CreateEndpoints(
+          mozilla::ipc::EndpointProcInfo::Current(), OtherEndpointProcInfo(),
+          &procInfoParent, &procInfoChild))) {
+    mProcInfoParent = ProcInfoParent::Create(std::move(procInfoParent));
+    if (mProcInfoParent) {
+      (void)SendInitProcInfo(std::move(procInfoChild));
+    }
+  }
+#endif
+
   RefPtr<GeckoMediaPluginServiceParent> gmps(
       GeckoMediaPluginServiceParent::GetSingleton());
   if (gmps) {
@@ -1886,6 +1903,13 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
     ProcessHangMonitor::RemoveProcess(mHangMonitorActor);
     mHangMonitorActor = nullptr;
   }
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (mProcInfoParent) {
+    mProcInfoParent->Shutdown();
+    mProcInfoParent = nullptr;
+  }
+#endif
 
   RefPtr<FileSystemSecurity> fss = FileSystemSecurity::Get();
   if (fss) {
@@ -4027,8 +4051,6 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
 
   } else if (!strcmp(aTopic, NS_NETWORK_LINK_TYPE_TOPIC)) {
     UpdateNetworkLinkType();
-  } else if (!strcmp(aTopic, "network:socket-process-crashed")) {
-    (void)SendSocketProcessCrashed();
   } else if (!strcmp(aTopic, DEFAULT_TIMEZONE_CHANGED_OBSERVER_TOPIC)) {
     (void)SendSystemTimezoneChanged();
   } else if (!strcmp(aTopic, NS_NETWORK_TRR_MODE_CHANGED_TOPIC)) {
@@ -4843,7 +4865,7 @@ static int32_t AddGeolocationListener(
     nsIDOMGeoPositionErrorCallback* errorCallBack, bool highAccuracy) {
   RefPtr<Geolocation> geo = Geolocation::NonWindowSingleton();
 
-  UniquePtr<PositionOptions> options = std::make_unique<PositionOptions>();
+  auto options = std::make_unique<PositionOptions>();
   options->mTimeout = 0;
   options->mMaximumAge = 0;
   options->mEnableHighAccuracy = highAccuracy;
@@ -7592,16 +7614,14 @@ mozilla::ipc::IPCResult ContentParent::RecvNotifyOnHistoryReload(
     const uint32_t& aReloadFlags, NotifyOnHistoryReloadResolver&& aResolver) {
   bool canReload = false;
   Maybe<NotNull<RefPtr<nsDocShellLoadState>>> loadState;
-  Maybe<bool> reloadActiveEntry;
   if (!aContext.IsNullOrDiscarded() &&
       aContext.get_canonical()->IsOwnedByProcess(ChildID())) {
-    aContext.get_canonical()->NotifyOnHistoryReload(
-        aReloadFlags, canReload, loadState, reloadActiveEntry);
+    aContext.get_canonical()->NotifyOnHistoryReload(aReloadFlags, canReload,
+                                                    loadState);
   }
-  aResolver(
-      std::tuple<const bool&,
-                 const Maybe<NotNull<RefPtr<nsDocShellLoadState>>>&,
-                 const Maybe<bool>&>(canReload, loadState, reloadActiveEntry));
+  aResolver(std::tuple<const bool&,
+                       const Maybe<NotNull<RefPtr<nsDocShellLoadState>>>&>(
+      canReload, loadState));
   return IPC_OK();
 }
 

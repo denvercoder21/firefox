@@ -969,7 +969,7 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run() {
  */
 nsresult FaviconHelper::ObtainCachedIconFile(
     nsCOMPtr<nsIURI> aFaviconPageURI, nsString& aICOFilePath,
-    RefPtr<LazyIdleThread>& aIOThread, bool aURLShortcut,
+    nsISerialEventTarget* aIOThread, bool aURLShortcut,
     already_AddRefed<nsIRunnable> aRunnable) {
   nsCOMPtr<nsIRunnable> runnable = aRunnable;
   // Obtain the ICO file path
@@ -1040,7 +1040,7 @@ nsresult FaviconHelper::ObtainCachedIconFile(
  *   in the event that the favicon cannot be retrieved and/or cached.
  */
 auto FaviconHelper::ObtainCachedIconFileAsync(
-    nsCOMPtr<nsIURI> aFaviconPageURI, RefPtr<LazyIdleThread>& aIOThread,
+    nsCOMPtr<nsIURI> aFaviconPageURI, nsISerialEventTarget* aIOThread,
     FaviconHelper::IconCacheDir aCacheDir)
     -> RefPtr<ObtainCachedIconFileAsyncPromise> {
   bool useShortcutCacheDir =
@@ -1870,8 +1870,7 @@ bool WinUtils::GetAppInitDLLs(nsAString& aOutput) {
     return false;
   }
   // Allocate the buffer and query for the actual data
-  mozilla::UniquePtr<wchar_t[]> data =
-      std::make_unique<wchar_t[]>(numBytes / sizeof(wchar_t));
+  auto data = std::make_unique<wchar_t[]>(numBytes / sizeof(wchar_t));
   status = RegQueryValueExW(hkey, kAppInitDLLs, nullptr, nullptr,
                             (LPBYTE)data.get(), &numBytes);
   if (status != ERROR_SUCCESS) {

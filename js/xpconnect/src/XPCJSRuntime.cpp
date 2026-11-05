@@ -137,6 +137,9 @@ const char* const XPCJSRuntime::mStrings[] = {
     "locks",            // IDX_LOCKS
     "suppressed",       // IDX_SUPPRESSED
     "error",            // IDX_ERROR
+    // IDX_REACT_DEVTOOLS_GLOBAL_HOOK
+    // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+    "__REACT_DEVTOOLS_GLOBAL_HOOK__",
 };
 
 /***************************************************************************/
@@ -2654,10 +2657,6 @@ static void AccumulateTelemetryCallback(JSMetric id,
       glean::javascript_gc::slice_time.ProcessGet().AccumulateRawDuration(
           sample.as<TimeDuration>());
       break;
-    case JSMetric::ION_COMPILE_TIME:
-      glean::javascript_ion::compile_time.AccumulateRawDuration(
-          sample.as<TimeDuration>());
-      break;
     case JSMetric::GC_BUDGET_MS_2:
       glean::javascript_gc::budget.ProcessGet().AccumulateRawDuration(
           sample.as<TimeDuration>());
@@ -3272,8 +3271,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // isRunOnce mode and compiled function bodies (from
   // JS::CompileFunction). In practice, this means content scripts and event
   // handlers.
-  mozilla::UniquePtr<XPCJSSourceHook> hook =
-      std::make_unique<XPCJSSourceHook>();
+  auto hook = std::make_unique<XPCJSSourceHook>();
   js::SetSourceHook(cx, std::move(hook));
 
   // Register memory reporters and distinguished amount functions.

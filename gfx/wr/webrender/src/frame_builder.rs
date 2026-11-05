@@ -30,6 +30,7 @@ use crate::profiler::{self, TransactionProfile};
 use crate::render_backend::{DataStores, DlStores, ScratchBuffer};
 use crate::renderer::{GpuBufferBuilder, GpuBufferBuilderF, GpuBufferBuilderI, GpuBufferF, GpuBufferI};
 use crate::renderer::{GpuBufferEdges, PathEdgeBufferBuilder};
+use crate::path_tiler::PathTiler;
 use crate::render_target::{PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{RenderTargetContext, RenderTargetKind, RenderTarget};
 use crate::render_task_graph::{Pass, RenderTaskGraph, RenderTaskId, SubPassSurface};
@@ -110,6 +111,9 @@ pub struct FrameBuilder {
     composite_state_prealloc: CompositeStatePreallocator,
     #[cfg_attr(feature = "capture", serde(skip))]
     plane_splitters: Vec<PlaneSplitter>,
+    /// Retained between frames to reuse its allocations.
+    #[cfg_attr(feature = "capture", serde(skip))]
+    path_tiler: PathTiler,
 }
 
 pub struct FrameBuildingContext<'a> {
@@ -121,6 +125,7 @@ pub struct FrameBuildingContext<'a> {
     pub debug_override: &'a SceneDebugOverride,
     pub fb_config: &'a FrameBuilderConfig,
     pub root_spatial_node_index: SpatialNodeIndex,
+    pub dl_stores: &'a DlStores,
 }
 
 impl<'a> FrameBuildingContext<'a> {
@@ -264,6 +269,7 @@ impl FrameBuilder {
             prim_headers_prealloc: Preallocator::new(0),
             composite_state_prealloc: CompositeStatePreallocator::default(),
             plane_splitters: Vec::new(),
+            path_tiler: PathTiler::new(),
         }
     }
 
@@ -318,6 +324,7 @@ impl FrameBuilder {
             debug_override,
             fb_config: &scene.config,
             root_spatial_node_index,
+            dl_stores,
         };
 
         scene.picture_graph.build_update_passes(
@@ -849,6 +856,7 @@ impl FrameBuilder {
                     &mut z_generator,
                     &scene.prim_instances,
                     &cmd_buffers,
+                    &mut self.path_tiler,
                 );
 
                 has_texture_cache_tasks |= !pass.texture_cache.is_empty();
@@ -1207,6 +1215,7 @@ pub fn build_render_pass(
     z_generator: &mut ZBufferIdGenerator,
     prim_instances: &[PrimitiveInstance],
     cmd_buffers: &CommandBufferList,
+    path_tiler: &mut PathTiler,
 ) -> RenderPass {
     tracy_rs::profile_scope!("build_render_pass");
 
@@ -1237,6 +1246,7 @@ pub fn build_render_pass(
                                 gpu_buffer_builder,
                                 render_tasks,
                                 transforms,
+                                path_tiler,
                             );
                         }
 
@@ -1259,6 +1269,7 @@ pub fn build_render_pass(
                                 gpu_buffer_builder,
                                 render_tasks,
                                 transforms,
+                                path_tiler,
                             );
                         }
 
@@ -1369,6 +1380,7 @@ pub fn build_render_pass(
                         gpu_buffer_builder,
                         render_tasks,
                         transforms,
+                        path_tiler,
                     );
                 }
             }

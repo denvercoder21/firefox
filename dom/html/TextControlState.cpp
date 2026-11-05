@@ -263,6 +263,7 @@ class TextInputSelectionController final : public nsSupportsWeakReference,
   NS_IMETHOD GetSelectionFromScript(RawSelectionType aRawSelectionType,
                                     Selection** aSelection) override;
   Selection* GetSelection(RawSelectionType aRawSelectionType) override;
+  Selection* GetExistingSelection(RawSelectionType aRawSelectionType) override;
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD ScrollSelectionIntoView(
       RawSelectionType aRawSelectionType, SelectionRegion aRegion,
       ControllerScrollFlags aFlags) override;
@@ -414,6 +415,15 @@ TextInputSelectionController::GetSelectionFromScript(
 Selection* TextInputSelectionController::GetSelection(
     RawSelectionType aRawSelectionType) {
   return GetSelection(ToSelectionType(aRawSelectionType));
+}
+
+Selection* TextInputSelectionController::GetExistingSelection(
+    RawSelectionType aRawSelectionType) {
+  if (!mFrameSelection) {
+    return nullptr;
+  }
+  return mFrameSelection->GetExistingSelection(
+      ToSelectionType(aRawSelectionType));
 }
 
 NS_IMETHODIMP
@@ -1469,7 +1479,6 @@ nsresult TextControlState::InitializeSelection(PresShell* aPresShell) {
 
   // Create a SelectionController
   mSelCon = new TextInputSelectionController(aPresShell, *editorRoot);
-  EnsureTextInputListener();
 
   // Editor will override this as needed from InitializeSelection.
   mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
@@ -1484,7 +1493,6 @@ nsresult TextControlState::InitializeSelection(PresShell* aPresShell) {
     if (caret) {
       selection->AddSelectionListener(caret);
     }
-    mTextInputListener->StartToListenToSelectionChange();
   }
 
   // If an editor exists from before, prepare it for usage
@@ -1538,7 +1546,6 @@ void TextControlState::EnsureTextInputListener() {
       mTextEditor->SetTextInputListener(mTextInputListener);
     }
   }
-  mTextInputListener->StartToHandleShortcutKeys();
 }
 
 bool TextControlState::IsPreparingEditor() const {
@@ -1761,7 +1768,14 @@ nsresult TextControlState::PrepareEditor() {
   NS_WARNING_ASSERTION(enabledUndoRedo,
                        "Failed to enable undo/redo transaction");
 
+  // The listener only acts on notifications from the editor and on keyboard
+  // events. Text controls prepare the editor in GetEventTargetParent(), which
+  // runs before any listener sees a keyboard event, so creating the listener
+  // can wait until now. This registers our keyboard listeners before the
+  // editor's own, which PostCreate() adds.
   EnsureTextInputListener();
+  mTextInputListener->StartToListenToSelectionChange();
+  mTextInputListener->StartToHandleShortcutKeys();
 
   if (!mEditorInitialized) {
     newTextEditor->PostCreate();

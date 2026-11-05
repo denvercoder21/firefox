@@ -497,7 +497,8 @@ void JsepTrack::AddToMsection(const std::vector<std::string>& aRids,
 
   bool requireRtxSsrcs = rtxEnabled && msection->IsSending();
 
-  if (mType.type != SdpMediaSection::kApplication && mDirection == sdp::kSend) {
+  // Only update SSRCs for RTP tracks.
+  if (mType.IsRtp() && mDirection == sdp::kSend) {
     UpdateSsrcs(ssrcGenerator, aRids.size());
 
     if (requireRtxSsrcs) {
@@ -857,8 +858,7 @@ nsresult JsepTrack::Negotiate(const SdpMediaSection& answer,
     return NS_ERROR_FAILURE;
   }
 
-  UniquePtr<JsepTrackNegotiatedDetails> negotiatedDetails =
-      std::make_unique<JsepTrackNegotiatedDetails>();
+  auto negotiatedDetails = std::make_unique<JsepTrackNegotiatedDetails>();
 
   CreateEncodings(remote, negotiatedCodecs, negotiatedDetails.get());
 
