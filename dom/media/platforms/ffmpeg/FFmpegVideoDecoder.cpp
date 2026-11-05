@@ -499,18 +499,33 @@ int FFmpegVideoDecoder<LIBAV_VER>::ChooseVulkanPixelFormatFromContext(
           (mVulkanDecoder.mDrmModifiers[0] == DRM_FORMAT_MOD_LINEAR) &&
           (mVulkanDecoder.mDrmModifiers.size() == 1);
     }
-    // Forced BL means ImageFormatProperties2 rejected YCbCr tiled modifiers, so
-    // the decode image cannot reliably use DRM-modifier tiling. Keep BL only
-    // for the copy-path export buffers; skip direct export (avoids GL import
-    // hangs and a useless LINEAR decode path that would double-copy).
-    if (VulkanDirectDecodeExportEnabled() &&
-        mVulkanDecoder.mForcedNvidiaBlockLinear) {
-      FFMPEGV_LOG(
-          "[VULKAN] Direct export disabled: forced NVIDIA BL after "
-          "ImageFormatProperties2 left only LINEAR");
-    }
-    if (VulkanDirectDecodeExportEnabled() &&
-        !mVulkanDecoder.mForcedNvidiaBlockLinear && !drmModsAreLinearOrEmpty) {
+    const auto directExportBlocked = [this]() {
+      // Forced BL means ImageFormatProperties2 rejected YCbCr tiled
+      // modifiers, so the decode image cannot reliably use DRM-modifier
+      // tiling. Keep BL only for the copy-path export buffers; skip direct
+      // export (avoids GL import hangs and a useless LINEAR decode path that
+      // would double-copy).
+      if (mVulkanDecoder.mForcedNvidiaBlockLinear) {
+        FFMPEGV_LOG(
+            "[VULKAN] Direct export disabled: forced NVIDIA BL after "
+            "ImageFormatProperties2 left only LINEAR");
+        return true;
+      }
+#    ifndef FFVPX_VERSION
+      // FFmpeg b7e835e06913 fixes DISTINCT DPB modifier handling; ffvpx has
+      // it.
+      if (mVulkanDecoder.mNegotiatedCompositorDecoderVendorID == 0x1002 &&
+          mLib->avcodec_version() < AV_VERSION_INT(63, 20, 101)) {
+        FFMPEGV_LOG(
+            "[VULKAN] Direct export disabled: system FFmpeg older than "
+            "63.20.101 may cause video corruption on AMD GPUs. Using copy");
+        return true;
+      }
+#    endif
+      return false;
+    };
+    if (VulkanDirectDecodeExportEnabled() && !directExportBlocked() &&
+        !drmModsAreLinearOrEmpty) {
       void* const originalCreatePnext = hwfc->create_pnext;
       int formatCount = 0;
       while (formatCount < AV_NUM_DATA_POINTERS &&
@@ -756,9 +771,10 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitVulkanDecoder() {
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
   }
 
-  mVulkanDecoder.CheckDecodeCapabilities(mCodecID, mVulkanDeviceContext,
-                                         mInfo.mExtraData, mInfo.mColorDepth);
-  if (!mVulkanDecoder.VulkanCanDecodeFormat(mCodecID,
+  if (!mVulkanDecoder.CheckDecodeCapabilities(mCodecID, mVulkanDeviceContext,
+                                              mInfo.mExtraData,
+                                              mInfo.mColorDepth) ||
+      !mVulkanDecoder.VulkanCanDecodeFormat(mCodecID,
                                             mLib->avcodec_version())) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -904,6 +920,10 @@ bool FFmpegVideoDecoder<LIBAV_VER>::ShouldDisableHWDecoding(
     return false;
   }
 #    endif
+  if (ShouldDecodeInGPUProcess()) {
+    FFMPEG_LOG("Platform decoder must be used in the GPU process");
+    return true;
+  }
   switch (mCodecID) {
     case AV_CODEC_ID_H264:
     case AV_CODEC_ID_HEVC:
@@ -2562,6 +2582,11 @@ bool FFmpegVideoDecoder<LIBAV_VER>::MediaCodecSupportsColorDepth(
               media::MCSInfo::GetMediaCodecFromMimeType(aMimeType), support,
               aColorDepth)
               .isEmpty();
+}
+
+/* static */ bool FFmpegVideoDecoder<LIBAV_VER>::ShouldDecodeInGPUProcess() {
+  return XRE_IsRDDProcess() && StaticPrefs::media_gpu_process_decoder() &&
+         gfx::gfxVars::GPUProcessEnabled();
 }
 #endif
 

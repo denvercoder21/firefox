@@ -300,6 +300,7 @@
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/ScaleFactor.h"
 #include "mozilla/glean/DomMetrics.h"
+#include "mozilla/glean/DomSecurityMetrics.h"
 #include "mozilla/glean/DomUseCounterMetrics.h"
 #include "mozilla/intl/EncodingToLang.h"
 #include "mozilla/intl/LocaleService.h"
@@ -1663,6 +1664,10 @@ Document::Document(const char* aContentType,
 
   mPreloadReferrerInfo = new dom::ReferrerInfo(nullptr);
   mReferrerInfo = new dom::ReferrerInfo(nullptr);
+
+  // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+  mRecordTrustedTypesReadiness =
+      StaticPrefs::dom_security_trusted_types_readiness_telemetry_enabled();
 }
 
 #ifndef ANDROID
@@ -2491,6 +2496,17 @@ void Document::AccumulatePageLoadTelemetry() {
     }
   }
 
+  // connectStart is null when the document reused an existing connection.
+  TimeStamp connectStart;
+  timedChannel->GetConnectStart(&connectStart);
+  if (connectStart) {
+    TimeDuration timeToConnectStart = connectStart - navigationStart;
+    mPageloadEventData.set_timeToConnectStart(
+        timeToConnectStart > zeroDuration
+            ? static_cast<uint32_t>(timeToConnectStart.ToMilliseconds())
+            : 0);
+  }
+
   TimeStamp secureConnectStart;
   TimeStamp connectEnd;
   timedChannel->GetSecureConnectionStart(&secureConnectStart);
@@ -2754,6 +2770,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPendingFullscreenEvents)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParser)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptGlobalObject)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobalCustomElementRegistry)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStyleSheetSetList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptLoader)
@@ -2918,6 +2935,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHighlightRegistry)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPendingFullscreenEvents)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mParser)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobalCustomElementRegistry)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOnloadBlocker)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDOMImplementation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mImageMaps)
@@ -3800,14 +3818,7 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     WarnIfSandboxIneffective(docShell, mSandboxFlags, GetChannel());
   }
 
-  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-      do_QueryInterface(aChannel);
-
-  if (classifiedChannel) {
-    mClassificationFlags = {
-        classifiedChannel->GetFirstPartyClassificationFlags(),
-        classifiedChannel->GetThirdPartyClassificationFlags()};
-  }
+  mClassificationFlags = AntiTrackingUtils::GetClassificationFlags(aChannel);
 
   // Set the opener policy for the top level content document.
   nsCOMPtr<nsIHttpChannelInternal> httpChan = do_QueryInterface(mChannel);
@@ -8694,6 +8705,9 @@ void Document::SetScriptGlobalObject(
   // having to QI every time it's asked for.
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mScriptGlobalObject);
   mWindow = window;
+  if (mWindow) {
+    mGlobalCustomElementRegistry = mWindow->CustomElements();
+  }
 
   if (mReadyState != READYSTATE_COMPLETE) {
     if (auto* wgc = GetWindowGlobalChild()) {
@@ -11008,6 +11022,14 @@ void Document::WriteCommon(const Sequence<OwningTrustedHTMLOrString>& aText,
                            bool aNewlineTerminate,
                            nsIPrincipal* aSubjectPrincipal,
                            mozilla::ErrorResult& rv) {
+  // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+  if (!aText.IsEmpty()) {
+    RecordTrustedTypesWriteSink(std::all_of(
+        aText.begin(), aText.end(), [](const OwningTrustedHTMLOrString& aPart) {
+          return aPart.IsTrustedHTML();
+        }));
+  }
+
   bool isTrusted = true;
   auto getAsString =
       [&isTrusted](const OwningTrustedHTMLOrString& aTrustedHTMLOrString) {
@@ -13044,6 +13066,12 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
             ("Document::OnPageShow [%s] persisted=%i", uri.get(), aPersisted));
   }
 
+  // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+  // Only on the first pageshow, not when restoring from the bfcache.
+  if (!aPersisted) {
+    DetectTrustedTypesLibrary();
+  }
+
   const bool inFrameLoaderSwap = !!aDispatchStartTarget;
   MOZ_DIAGNOSTIC_ASSERT(
       inFrameLoaderSwap ==
@@ -15016,7 +15044,8 @@ void Document::WarnOnceAndReportAbout(
     return;
   }
 
-  nsContentUtils::ReportDeprecation(global, this, uri, aOperation, aLocation);
+  nsContentUtils::ReportDeprecation(global, this, uri, aOperation, aLocation,
+                                    aParams);
 }
 
 bool Document::HasWarnedAbout(DocumentWarnings aWarning) const {
@@ -18351,6 +18380,170 @@ void Document::InitUseCounters() {
   mShouldSendPageUseCounters = true;
 }
 
+// Bug 2072122: Trusted Types readiness experiment only, to be removed.
+// Continues React detection after its initial `typeof` check. The hook on the
+// window is by now one of three things:
+//  - undefined: only the typeof check, aLookedUpHook, can tell React was here;
+//  - a getter: the React DevTools extension's hook, present on every page;
+//  - a data property: set by page script, usually to disable DevTools.
+static bool IsReactGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
+                          bool aLookedUpHook) {
+  JS::Rooted<Maybe<JS::PropertyDescriptor>> desc(aCx);
+  if (!JS_GetOwnPropertyDescriptor(aCx, aGlobal,
+                                   "__REACT_DEVTOOLS_GLOBAL_HOOK__", &desc)) {
+    JS_ClearPendingException(aCx);
+    return false;
+  }
+  if (desc.isNothing()) {
+    // undefined
+    return aLookedUpHook;
+  }
+  if (desc->isAccessorDescriptor()) {
+    // getter (DevTools extension), not React itself
+    return false;
+  }
+  // data property (page script), only React sites do this
+  return true;
+}
+
+static bool IsHtmxGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
+  bool found = false;
+  if (!JS_HasOwnProperty(aCx, aGlobal, "htmx", &found)) {
+    JS_ClearPendingException(aCx);
+    return false;
+  }
+  return found;
+}
+
+// Check for an "ng-version" attribute (Angular). Limited to body and its first
+// 16 children as a performance optimization. Our measurement focuses on web
+// apps that can reasonably apply Trusted Types, so undercounting and missing a
+// widget using the library is fine.
+static bool HasAngularRoot(Document& aDocument) {
+  Element* body = aDocument.GetBodyElement();
+  if (!body) {
+    return false;
+  }
+  RefPtr<nsAtom> ngVersion = NS_AtomizeMainThread(u"ng-version"_ns);
+  if (body->HasAttr(ngVersion)) {
+    return true;
+  }
+  uint32_t remaining = 16;
+  for (Element* child = body->GetFirstElementChild(); child && remaining--;
+       child = child->GetNextElementSibling()) {
+    if (child->HasAttr(ngVersion)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Called from the first pageshow of a document, the one after its load event
+// rather than a bfcache restore. Lit is detected while it loads instead.
+void Document::DetectTrustedTypesLibrary() {
+  if (!StaticPrefs::dom_security_trusted_types_readiness_telemetry_enabled() ||
+      HasTrustedTypesReadinessSignal(
+          TrustedTypesReadinessSignal::HasTrustedTypesLibrary)) {
+    return;
+  }
+  nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(GetInnerWindow());
+  if (!window) {
+    return;
+  }
+  AutoJSAPI jsapi;
+  if (!jsapi.Init(window)) {
+    return;
+  }
+  JSContext* cx = jsapi.cx();
+  JS::Rooted<JSObject*> global(cx, window->GetGlobalJSObject());
+  MOZ_ASSERT(global);
+  AutoRestore<bool> restore(mDetectingTrustedTypesLibrary);
+  mDetectingTrustedTypesLibrary = true;
+  if (IsReactGlobal(
+          cx, global,
+          HasTrustedTypesReadinessSignal(
+              TrustedTypesReadinessSignal::LookedUpReactDevToolsHook)) ||
+      IsHtmxGlobal(cx, global) || HasAngularRoot(*this)) {
+    SetTrustedTypesReadinessSignal(
+        TrustedTypesReadinessSignal::HasTrustedTypesLibrary);
+  }
+}
+
+// Bug 2072122: Trusted Types readiness experiment only, to be removed.
+void Document::SetTrustedTypesReadinessSignal(
+    TrustedTypesReadinessSignal aSignal) {
+  if (MOZ_UNLIKELY(IsLoadedAsData())) {
+    nsIGlobalObject* scope = GetScopeObject();
+    nsPIDOMWindowInner* window = scope ? scope->GetAsInnerWindow() : nullptr;
+    if (Document* doc = window ? window->GetExtantDoc() : nullptr) {
+      doc->SetTrustedTypesReadinessSignal(aSignal);
+    }
+    return;
+  }
+  mTrustedTypesReadinessSignals += aSignal;
+}
+
+// Bug 2072122: Trusted Types readiness experiment only, to be removed.
+void Document::ReportTrustedTypesReadiness() {
+  // Re-check the pref so that disabling the study also stops pre-existing
+  // documents from reporting.
+  if (!mRecordTrustedTypesReadiness ||
+      !StaticPrefs::dom_security_trusted_types_readiness_telemetry_enabled()) {
+    return;
+  }
+
+  const char* ttcsp = "none";
+  const char* strict = "none";
+  if (nsIContentSecurityPolicy* policy =
+          PolicyContainer::GetCSP(GetPolicyContainer())) {
+    if (Maybe<nsCSPPolicy::Disposition> disposition =
+            nsCSPContext::Cast(policy)->GetStrictPolicyDisposition()) {
+      strict = *disposition == nsCSPPolicy::Disposition::Enforce ? "enforce"
+                                                                 : "report";
+    }
+    switch (policy->GetRequireTrustedTypesForDirectiveState()) {
+      case RequireTrustedTypesForDirectiveState::ENFORCE:
+        ttcsp = "enforce";
+        break;
+      case RequireTrustedTypesForDirectiveState::REPORT_ONLY:
+        ttcsp = "report";
+        break;
+      case RequireTrustedTypesForDirectiveState::NONE:
+        break;
+    }
+  }
+
+  // Without script of its own, nothing the page did can have set the other
+  // signals: sinks used by an extension's content script and an ng-version
+  // attribute in markup that never runs are not reported. A policy can only
+  // be used once created, possibly in an earlier document of the window. This
+  // keeps the label list to combinations that can occur.
+  const bool js = mTrustedTypesReadinessSignals.contains(
+      TrustedTypesReadinessSignal::RanScript);
+  const auto Has = [&](TrustedTypesReadinessSignal aSignal) -> uint32_t {
+    return js && mTrustedTypesReadinessSignals.contains(aSignal) ? 1 : 0;
+  };
+  const auto Sink = [&](TrustedTypesReadinessSignal aString,
+                        TrustedTypesReadinessSignal aTrustedHTML) {
+    return Has(aString) ? "string" : Has(aTrustedHTML) ? "trusted" : "none";
+  };
+  const uint32_t used = Has(TrustedTypesReadinessSignal::UsedPolicy);
+  const uint32_t created =
+      used || Has(TrustedTypesReadinessSignal::CreatedPolicy);
+  glean::security::trusted_types_readiness
+      .Get(nsPrintfCString(
+          "htmlsink-%s_writesink-%s_ttcsp-%s_strictcsp-%s_created-%u_used-%u_"
+          "lib-%u_js-%u",
+          Sink(TrustedTypesReadinessSignal::UsedHTMLSinkWithString,
+               TrustedTypesReadinessSignal::UsedHTMLSinkWithTrustedHTML),
+          Sink(TrustedTypesReadinessSignal::UsedWriteSinkWithString,
+               TrustedTypesReadinessSignal::UsedWriteSinkWithTrustedHTML),
+          ttcsp, strict, created, used,
+          Has(TrustedTypesReadinessSignal::HasTrustedTypesLibrary),
+          js ? 1u : 0u))
+      .Add();
+}
+
 // We keep separate counts for individual documents and top-level
 // pages to more accurately track how many web pages might break if
 // certain features were removed.  Consider the case of a single
@@ -18384,6 +18577,8 @@ void Document::ReportDocumentUseCounters() {
   // Note that a document is being destroyed.  See the comment above for how
   // use counter data are interpreted relative to this measurement.
   glean::use_counter::content_documents_destroyed.Add();
+  // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+  ReportTrustedTypesReadiness();
 
   // Ask all of our resource documents to report their own document use
   // counters.
@@ -21753,7 +21948,8 @@ ColorScheme Document::DefaultColorScheme() const {
   return LookAndFeel::ColorSchemeForStyle(*this, {GetColorSchemeBits()});
 }
 
-ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
+PrefersColorSchemeOverride Document::GetOverriddenOrEmbedderColorScheme(
+    IgnoreRFP aIgnoreRFP) const {
   nsPresContext* pc = GetPresContext();
   const bool printing = pc && pc->Medium() == nsGkAtoms::print;
   if (auto flags = StyleColorSchemeFlags{GetColorSchemeBits()};
@@ -21764,25 +21960,33 @@ ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
     const bool supportsLight(flags & StyleColorSchemeFlags::LIGHT);
     const bool only(flags & StyleColorSchemeFlags::ONLY);
     if (supportsDark != supportsLight && (!printing || only)) {
-      return supportsDark ? ColorScheme::Dark : ColorScheme::Light;
+      return supportsDark ? PrefersColorSchemeOverride::Dark
+                          : PrefersColorSchemeOverride::Light;
     }
   }
 
   if (printing) {
-    return ColorScheme::Light;
+    return PrefersColorSchemeOverride::Light;
   }
 
   if (ShouldResistFingerprinting(RFPTarget::CSSPrefersColorScheme) &&
       aIgnoreRFP == IgnoreRFP::No) {
-    return ColorScheme::Light;
+    return PrefersColorSchemeOverride::Light;
   }
 
-  if (pc) {
-    if (auto scheme = pc->GetOverriddenOrEmbedderColorScheme()) {
-      return *scheme;
-    }
-  }
+  return pc ? pc->GetOverriddenOrEmbedderColorScheme()
+            : PrefersColorSchemeOverride::None;
+}
 
+ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
+  switch (GetOverriddenOrEmbedderColorScheme(aIgnoreRFP)) {
+    case PrefersColorSchemeOverride::Dark:
+      return ColorScheme::Dark;
+    case PrefersColorSchemeOverride::Light:
+      return ColorScheme::Light;
+    case PrefersColorSchemeOverride::None:
+      break;
+  }
   return PreferenceSheet::PrefsFor(*this).mColorScheme;
 }
 
@@ -22075,6 +22279,12 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
   // compliant string algorithm with TrustedHTML, this’s relevant global object,
   // html, "Document parseHTMLUnsafe", and "script".
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+  if (nsPIDOMWindowInner* window = global->GetAsInnerWindow()) {
+    if (Document* doc = window->GetExtantDoc()) {
+      doc->RecordTrustedTypesHTMLSink(aHTML.IsTrustedHTML());
+    }
+  }
   constexpr nsLiteralString sink = u"Document parseHTMLUnsafe"_ns;
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =

@@ -147,10 +147,9 @@ UniquePtr<CustomElementCallback> CustomElementCallback::Create(
       if (aDefinition->mCallbacks->mConnectedMoveCallback.WasPassed()) {
         func = aDefinition->mCallbacks->mConnectedMoveCallback.Value();
       } else if (aDefinition->mCallbacks->mDisconnectedCallback.WasPassed()) {
-        UniquePtr<CustomElementCallback> callback =
-            std::make_unique<CustomElementCallback>(
-                aCustomElement, ElementCallbackType::eDisconnected,
-                aDefinition->mCallbacks->mDisconnectedCallback.Value(), aArgs);
+        auto callback = std::make_unique<CustomElementCallback>(
+            aCustomElement, ElementCallbackType::eDisconnected,
+            aDefinition->mCallbacks->mDisconnectedCallback.Value(), aArgs);
         if (aDefinition->mCallbacks->mConnectedCallback.WasPassed()) {
           callback->SetSecondaryCallback(
               ElementCallbackType::eConnected,
@@ -515,8 +514,10 @@ CustomElementRegistry::RunCustomElementCreationCallback::Run() {
   ErrorResult er;
   nsDependentAtomString value(mAtom);
   mCallback->Call(value, er);
-  MOZ_ASSERT(NS_SUCCEEDED(er.StealNSResult()),
-             "chrome JavaScript error in the callback.");
+  if (er.Failed()) {
+    mRegistry->mElementCreationCallbacksUpgradeCandidatesMap.Remove(mAtom);
+    return er.StealNSResult();
+  }
 
   RefPtr<CustomElementDefinition> definition =
       mRegistry->mCustomDefinitions.Get(mAtom);

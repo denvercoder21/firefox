@@ -1719,8 +1719,7 @@ void WebrtcVideoConduit::OnRtcpReceived(webrtc::CopyOnWriteBuffer&& aPacket) {
   MOZ_ASSERT(mCallThread->IsOnCurrentThread());
 
   if (mCall->Call()) {
-    mCall->Call()->Receiver()->DeliverRtcpPacket(
-        std::forward<webrtc::CopyOnWriteBuffer>(aPacket));
+    mCall->Call()->Receiver()->DeliverRtcpPacket(std::move(aPacket));
   }
 }
 
@@ -2150,6 +2149,15 @@ void WebrtcVideoConduit::GenerateKeyFrame(const Maybe<std::string>& aRid,
         // videoEncoder.
 
         mSendStream->GenerateKeyFrame(rids);
+      }));
+}
+
+void WebrtcVideoConduit::GenerateKeyFrames(std::vector<std::string> aRids) {
+  mCallThread->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr(this), rids = std::move(aRids)] {
+        if (mSendStream) {
+          mSendStream->GenerateKeyFrame(rids);
+        }
       }));
 }
 

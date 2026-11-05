@@ -2162,6 +2162,7 @@ STATIC_ATOMS = [
     Atom("_moz_trad_chinese_formal", "-moz-trad-chinese-formal"),
     Atom("_moz_simp_chinese_informal", "-moz-simp-chinese-informal"),
     Atom("_moz_simp_chinese_formal", "-moz-simp-chinese-formal"),
+    Atom("_moz_submit_string", "-moz-submit-string"),
     Atom("_moz_japanese_informal", "-moz-japanese-informal"),
     Atom("_moz_japanese_formal", "-moz-japanese-formal"),
     Atom("_moz_ethiopic_numeric", "-moz-ethiopic-numeric"),
@@ -2497,7 +2498,6 @@ STATIC_ATOMS = [
     # Media query prefs for UA sheets.
     Atom("dom_image_sizes_auto_enabled", "dom.image.sizes_auto.enabled"),
     Atom("mathml_legacy_mathvariant_attribute_disabled", "mathml.legacy_mathvariant_attribute.disabled"),
-    Atom("mathml_font_family_math_enabled", "mathml.font_family_math.enabled"),
     Atom("layout_css_android_pip_enabled", "layout.css.android-pip.enabled"),
     Atom("layout_css_appearance_base_enabled", "layout.css.appearance-base.enabled"),
     Atom("layout_css_cached_scrollbar_styles_enabled", "layout.css.cached-scrollbar-styles.enabled"),

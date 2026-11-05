@@ -4,6 +4,7 @@
 
 package org.mozilla.conventions
 
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
@@ -42,6 +43,7 @@ import org.gradle.api.tasks.testing.TestOutputEvent
 import org.gradle.api.tasks.testing.TestOutputListener
 import org.gradle.api.tasks.testing.TestResult
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.gradle.process.CommandLineArgumentProvider
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -83,8 +85,9 @@ class ProjectPlugin : Plugin<Project> {
         configureKtfmt(project, mozilla)
         configureDetekt(project, mozilla)
         configureAndroidComponentsLint(project, mozilla, topsrcdir)
-        configureTestOutputFormatting(project)
+        configureUnitTests(project)
         configurePackagingResourcesExcludes(project)
+        configureBuildMetadata(project)
         registerPrintVariantsTask(project)
         configureNativeLibsForTests(project, substs)
     }
@@ -551,17 +554,26 @@ class ProjectPlugin : Plugin<Project> {
         project.pluginManager.withPlugin("com.android.application", action)
     }
 
-    // Translates JUnit test events into Mozilla's TBPL-like textual format that Taskcluster
-    // log parsing expects. See also: testing/mozbase/mozlog/mozlog/formatters/tbplformatter.py
-    private fun configureTestOutputFormatting(project: Project) {
+    private fun configureUnitTests(project: Project) {
+        val automation = project.providers.environmentVariable("MOZ_AUTOMATION").isPresent
+        val fetches = project.providers.environmentVariable("MOZ_FETCHES_DIR")
         project.pluginManager.withPlugin("com.android.base") {
             project.tasks.withType(Test::class.java).configureEach {
                 systemProperty("robolectric.logging", "stdout")
                 systemProperty("logging.test-mode", "true")
                 systemProperty("javax.net.ssl.trustStoreType", "JKS")
+                if (automation) {
+                    systemProperty(
+                        "robolectric.dependency.dir",
+                        File(fetches.get(), "robolectric-android-all").path,
+                    )
+                }
 
                 testLogging.events = emptySet()
 
+                // Translates JUnit test events into Mozilla's TBPL-like textual format that
+                // Taskcluster log parsing expects.
+                // See also: testing/mozbase/mozlog/mozlog/formatters/tbplformatter.py
                 val listener = MozillaTestOutputListener(logger)
                 addTestListener(listener)
                 addTestOutputListener(listener)
@@ -579,6 +591,24 @@ class ProjectPlugin : Plugin<Project> {
         }
         project.pluginManager.withPlugin("com.android.library", action)
         project.pluginManager.withPlugin("com.android.application", action)
+    }
+
+    /**
+     * Adds the `build-metadata.properties` asset to minified application variants.
+     */
+    private fun configureBuildMetadata(project: Project) {
+        project.pluginManager.withPlugin("com.android.application") {
+            val androidComponents = project.extensions.getByType<ApplicationAndroidComponentsExtension>()
+            androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+                if (!variant.isMinifyEnabled) return@onVariants
+                val task = project.tasks.register<WriteBuildMetadata>(
+                    "writeBuildMetadata${variant.name.replaceFirstChar { it.uppercase() }}",
+                ) {
+                    mappingFile.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+                }
+                variant.sources.assets?.addGeneratedSourceDirectory(task, WriteBuildMetadata::outputDir)
+            }
+        }
     }
 
     private fun registerPrintVariantsTask(project: Project) {

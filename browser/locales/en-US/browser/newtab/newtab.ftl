@@ -239,10 +239,11 @@ newtab-empty-section-topstories-generic = You’ve caught up. Check back later f
 
 newtab-discovery-empty-section-topstories-header = You are caught up!
 newtab-discovery-empty-section-topstories-content = Check back later for more stories.
-newtab-discovery-empty-section-topstories-try-again-button = Try Again
+newtab-discovery-empty-section-topstories-try-again-button = Try again
 newtab-discovery-empty-section-topstories-loading = Loading…
-# Displays when a layout in a section took too long to fetch articles.
-newtab-discovery-empty-section-topstories-timed-out = Oops! We almost loaded this section, but not quite.
+# Headline and body shown when stories fail to load, for example when offline or the server can’t be reached.
+newtab-discovery-empty-section-topstories-unavailable-header = Stories aren’t available right now
+newtab-discovery-empty-section-topstories-unavailable-body = Check your connection or try again later.
 
 ## Strings for the story cards carousel
 
@@ -543,6 +544,9 @@ newtab-wallpaper-firefox-peak-dark = A fox’s face at the left edge, on a dark 
 newtab-wallpaper-firefox-peak-light = A fox’s face at the left edge, on a light background
 newtab-wallpaper-firefox-sky-dark = Dark purple hills under a night sky
 newtab-wallpaper-firefox-sky-light = Light hills under a soft sky
+# “Wrexham AFC” is the name of a football club and should not be translated.
+# "crest" refers to the football club's logo (team badge).
+newtab-wallpaper-firefox-wrexham = The Wrexham AFC crest on a red background
 
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
@@ -821,6 +825,12 @@ newtab-widget-menu-move-left = Left
 # Submenu item under "Move"; moves the widget one position to the right.
 # RTL locales should translate this as "Left".
 newtab-widget-menu-move-right = Right
+# Submenu item under "Move"; pins the widget to Home, the New Tab space the
+# page opens on.
+newtab-widget-menu-move-to-home = Home
+# Submenu item under "Move"; moves the widget from Home back to the Widgets
+# space, the New Tab space that holds every widget not pinned to Home.
+newtab-widget-menu-move-to-widgets = Widgets
 newtab-widget-size-small = Small
 newtab-widget-size-medium = Medium
 newtab-widget-size-large = Large
@@ -893,10 +903,6 @@ newtab-widget-lists-menu-create = Create a new list
 newtab-widget-lists-menu-delete = Delete this list
 newtab-widget-lists-menu-copy = Copy list to clipboard
 newtab-widget-lists-menu-learn-more = Learn more
-# "Change" is a verb here: the button switches which list is shown
-newtab-widget-lists-change-list =
-    .title = Change list
-    .aria-label = Change list
 newtab-widget-lists-button-add-item = Add an item
 newtab-widget-lists-input-add-an-item2 =
     .placeholder = Add an item
@@ -957,14 +963,9 @@ newtab-crossword-widget-open-menu-button =
     .title = Open crossword menu
     .aria-label = Open crossword menu
 
-## World Cup wallpaper OMC messages
-## Shown as on-screen messages promoting the World Cup wallpapers.
-
-newtab-sports-widget-message-wallpapers-title = Kick off the World Cup with new wallpapers
-newtab-sports-widget-message-wallpapers-body = Bring some match-day energy to your browser for the tournament.
-newtab-sports-widget-message-wallpapers-cta = Choose wallpaper
-newtab-sports-widget-message-wallpapers-semifinals-title = Get a new wallpaper for the semi-finals
-newtab-sports-widget-message-wallpapers-semifinals-body = Set the stage for the World Cup’s biggest matches.
+# Context menu item linking to the Particle website, the provider of the
+# crossword. “Particle” is a brand name and should not be translated.
+newtab-crossword-menu-powered-by-particle = Powered by Particle
 
 ## Strings introduced by the Nova redesign of the Timer widget
 
@@ -1390,6 +1391,9 @@ newtab-privacy-empty-state = { -brand-short-name } automatically blocks trackers
 # Here we are referring to the number of trackers blocked, which increases as the user browses.
 # An alternative can be "See a running total here"
 newtab-privacy-empty-state-tally = See a running tally here.
+# Shorter empty-state copy for the small card, shown as two separate lines.
+newtab-privacy-empty-state-small-title = Fewer trackers, faster browsing.
+newtab-privacy-empty-state-small-message = Browse to start blocking.
 
 ## Privacy widget — Enhanced Tracking Protection off state
 
@@ -1798,6 +1802,10 @@ newtab-travel-widget-open-menu-button =
 
 # Context menu item linking to more information about the widget.
 newtab-travel-menu-learn-more = Learn more
+
+# Context menu item linking to the Kayak website, the provider of the
+# travel search. “Kayak” is a brand name and should not be translated.
+newtab-travel-menu-powered-by-kayak = Powered by Kayak
 
 ## Strings for the Solitaire widget. Solitaire is a widget on New Tab where you
 ## can play solitaire, a card game for one player, also known as patience.
