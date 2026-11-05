@@ -11,6 +11,7 @@
 #include "GLContextProvider.h"
 #include "GPUParent.h"
 #include "GPUProcessHost.h"
+#include "GPUProcessLog.h"
 #include "GPUProcessManager.h"
 #include "GfxInfoBase.h"
 #include "MediaCodecsSupport.h"
@@ -45,7 +46,7 @@
 #include "mozilla/ipc/CrashReporterClient.h"
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/ipc/ProcessUtils.h"
-#include "mozilla/layers/APZInputBridgeParent.h"
+#include "mozilla/layers/APZBridgeParent.h"
 #include "mozilla/layers/APZPublicUtils.h"  // for apz::InitializeGlobalState
 #include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/layers/CompositeProcessFencesHolderMap.h"
@@ -235,6 +236,8 @@ bool GPUParent::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
 
 void GPUParent::NotifyDeviceReset(DeviceResetReason aReason,
                                   DeviceResetDetectPlace aPlace) {
+  GPUPROCESS_LOG("Device reset detected, reason {} place {}",
+                 fmt::enums::format_as(aReason), fmt::enums::format_as(aPlace));
   // Notify the main process that there's been a device reset
   // and that they should reset their compositors and repaint
   GPUDeviceData data;
@@ -396,7 +399,7 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
     layers::AndroidHardwareBufferManager::Init();
   }
 
-  if (gfxVars::UseAImageReaderVideoGpuProcessAndroid()) {
+  if (gfxVars::ForceAImageReaderAndroid()) {
     layers::GpuProcessAndroidImageReaderMap::Init();
   }
 
@@ -498,10 +501,9 @@ mozilla::ipc::IPCResult GPUParent::RecvInitUiCompositorController(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult GPUParent::RecvInitAPZInputBridge(
-    const LayersId& aRootLayerTreeId,
-    Endpoint<PAPZInputBridgeParent>&& aEndpoint) {
-  APZInputBridgeParent::Create(aRootLayerTreeId, std::move(aEndpoint));
+mozilla::ipc::IPCResult GPUParent::RecvInitAPZBridge(
+    const LayersId& aRootLayerTreeId, Endpoint<PAPZBridgeParent>&& aEndpoint) {
+  APZBridgeParent::Create(aRootLayerTreeId, std::move(aEndpoint));
   return IPC_OK();
 }
 

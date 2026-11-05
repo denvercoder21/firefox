@@ -31,8 +31,8 @@ enum TouchPointerState : uint8_t;
 namespace mozilla {
 
 namespace layers {
-class APZInputBridgeChild;
-class PAPZInputBridgeParent;
+class APZBridgeChild;
+class PAPZBridgeParent;
 }  // namespace layers
 
 namespace dom {
@@ -262,6 +262,10 @@ class MultiTouchInput : public InputData {
   // the touch interaction, so we sstore it in the event.
   ExternalPoint mScreenOffset;
   bool mHandledByAPZ;
+  // Whether the caller is still considering this touch block for a browser
+  // swipe. This is false after the caller accepts or rejects the swipe, or
+  // when the caller does not consider it at all on MULTITOUCH_START.
+  bool mMayTriggerSwipe = false;
   // These button fields match to the corresponding fields in
   // WidgetMouseEventBase, except mButton defaults to -1 to follow PointerEvent.
   int16_t mButton = eNotPressed;
@@ -271,8 +275,8 @@ class MultiTouchInput : public InputData {
 
 class MouseInput : public InputData {
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   MouseInput();
@@ -294,7 +298,6 @@ class MouseInput : public InputData {
       MOUSE_WIDGET_ENTER,
       MOUSE_WIDGET_EXIT,
       MOUSE_HITTEST,
-      MOUSE_EXPLORE_BY_TOUCH,
       MOUSE_CONTEXTMENU
   ));
 
@@ -303,6 +306,10 @@ class MouseInput : public InputData {
       PRIMARY_BUTTON,
       MIDDLE_BUTTON,
       SECONDARY_BUTTON,
+      // Typically, "back" button
+      X1_BUTTON,
+      // Typically, "forward" button
+      X2_BUTTON,
       NONE
   ));
   // clang-format on
@@ -346,8 +353,8 @@ class PanGestureInput : public InputData {
   friend struct IPC::ParamTraits<PanGestureInput>;
 
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   PanGestureInput();
@@ -431,6 +438,14 @@ class PanGestureInput : public InputData {
                            int32_t aLineOrPageDeltaY);
 
   bool IsMomentum() const;
+
+  // Returns whether this event, after being handled by APZ, should be
+  // dispatched to content as a wheel event. A zero-delta event does not result
+  // in a DOM wheel event, so content cannot prevent it, and its content
+  // response would not reflect the page's wheel listeners. Such an event is
+  // only dispatched if it may be the last event in its input block, so that
+  // the block still gets a content response.
+  bool ShouldDispatchToContentAfterAPZ() const;
 
   WidgetWheelEvent ToWidgetEvent(nsIWidget* aWidget) const;
 
@@ -521,8 +536,8 @@ class PanGestureInput : public InputData {
  */
 class PinchGestureInput : public InputData {
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   PinchGestureInput();
@@ -633,8 +648,8 @@ class PinchGestureInput : public InputData {
  */
 class TapGestureInput : public InputData {
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   TapGestureInput();
@@ -684,8 +699,8 @@ class TapGestureInput : public InputData {
 // scroll gestures.
 class ScrollWheelInput : public InputData {
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   typedef mozilla::layers::APZWheelAction APZWheelAction;
@@ -845,8 +860,8 @@ class KeyboardInput : public InputData {
   KeyboardScrollAction mAction;
 
  protected:
-  friend mozilla::layers::APZInputBridgeChild;
-  friend mozilla::layers::PAPZInputBridgeParent;
+  friend mozilla::layers::APZBridgeChild;
+  friend mozilla::layers::PAPZBridgeParent;
   ALLOW_DEPRECATED_READPARAM
 
   KeyboardInput();

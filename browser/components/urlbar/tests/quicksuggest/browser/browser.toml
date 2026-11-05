@@ -24,8 +24,6 @@ prefs = [
 
 ["browser_quicksuggest_configuration.js"]
 
-["browser_quicksuggest_contextual_optin.js"]
-
 ["browser_quicksuggest_dynamicSuggestions.js"]
 
 ["browser_quicksuggest_indexes.js"]
@@ -63,6 +61,11 @@ support-files = [
   "moz-flipped.png",
 ]
 
+["browser_quicksuggest_temporal.js"]
+
+["browser_quicksuggest_temporal_zeroPrefixLayout.js"]
+support-files = ["../../../../search/test/browser/trendingSuggestionEngine.sjs"]
+
 ["browser_quicksuggest_yelp.js"]
 
 ["browser_telemetry_environment.js"]
@@ -70,8 +73,5 @@ tags = "search-telemetry"
 
 ["browser_telemetry_suggestMetrics.js"]
 tags = "search-telemetry"
-skip-if = [
-  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'", # Bug 1971091
-]
 
 ["browser_weather.js"]

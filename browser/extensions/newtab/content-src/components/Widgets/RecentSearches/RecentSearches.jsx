@@ -4,9 +4,10 @@
 
 // eslint-disable-next-line no-unused-vars
 import React, { useCallback } from "react";
-import { useSelector, batch } from "react-redux";
+import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { WIDGET_REGISTRY, resolveWidgetSize } from "common/WidgetsRegistry.mjs";
+import { WidgetMenuButton } from "../WidgetMenuButton";
 import { WidgetMenuFooter } from "../WidgetMenuFooter";
 import { SizeSubmenu } from "../SizeSubmenu";
 import { useWidgetTelemetry } from "../useWidgetTelemetry";
@@ -107,22 +108,20 @@ function RecentSearches({
 
   const handleChangeSize = useCallback(
     size => {
-      batch(() => {
-        dispatch(
-          ac.OnlyToMain({
-            type: at.SET_PREF,
-            data: { name: RECENT_SEARCHES_ENTRY.sizePref, value: size },
-          })
-        );
-        // `value` is action_value; `size` overrides the reported widget_size,
-        // which would otherwise still be the pre-change size.
-        recordUserAction(USER_ACTION_TYPES.CHANGE_SIZE, {
-          source: "context_menu",
-          value: size,
-          size,
-        });
-        handleInteraction();
+      dispatch(
+        ac.OnlyToMain({
+          type: at.SET_PREF,
+          data: { name: RECENT_SEARCHES_ENTRY.sizePref, value: size },
+        })
+      );
+      // `value` is action_value; `size` overrides the reported widget_size,
+      // which would otherwise still be the pre-change size.
+      recordUserAction(USER_ACTION_TYPES.CHANGE_SIZE, {
+        source: "context_menu",
+        value: size,
+        size,
       });
+      handleInteraction();
     },
     [dispatch, recordUserAction, handleInteraction]
   );
@@ -138,61 +137,55 @@ function RecentSearches({
       if (tab === activeTab) {
         return;
       }
-      batch(() => {
-        dispatch(
-          ac.OnlyToMain({
-            type: at.SET_PREF,
-            data: { name: TAB_PREF, value: tab },
-          })
-        );
-        recordUserAction(USER_ACTION_TYPES.CHANGE_TAB, {
-          source: "widget",
-          value: tab,
-        });
-        handleInteraction();
+      dispatch(
+        ac.OnlyToMain({
+          type: at.SET_PREF,
+          data: { name: TAB_PREF, value: tab },
+        })
+      );
+      recordUserAction(USER_ACTION_TYPES.CHANGE_TAB, {
+        source: "widget",
+        value: tab,
       });
+      handleInteraction();
     },
     [activeTab, dispatch, recordUserAction, handleInteraction]
   );
 
   const handleRemoveClick = useCallback(
     search => {
-      batch(() => {
-        dispatch(
-          ac.OnlyToMain({
-            type: at.WIDGETS_RECENT_SEARCHES_REMOVE_SEARCH,
-            data: { search },
-          })
-        );
-        recordUserAction(USER_ACTION_TYPES.REMOVE_SEARCH, { source: "widget" });
-        handleInteraction();
-      });
+      dispatch(
+        ac.OnlyToMain({
+          type: at.WIDGETS_RECENT_SEARCHES_REMOVE_SEARCH,
+          data: { search },
+        })
+      );
+      recordUserAction(USER_ACTION_TYPES.REMOVE_SEARCH, { source: "widget" });
+      handleInteraction();
     },
     [dispatch, recordUserAction, handleInteraction]
   );
 
   const handleSearchClick = useCallback(
     (search, event) => {
-      batch(() => {
-        dispatch(
-          ac.OnlyToMain({
-            type: at.WIDGETS_RECENT_SEARCHES_OPEN_LINK,
-            data: {
-              search,
-              // The main process needs the modifiers to decide where to open.
-              eventInfo: {
-                button: event.button,
-                shiftKey: event.shiftKey,
-                ctrlKey: event.ctrlKey,
-                metaKey: event.metaKey,
-                altKey: event.altKey,
-              },
+      dispatch(
+        ac.OnlyToMain({
+          type: at.WIDGETS_RECENT_SEARCHES_OPEN_LINK,
+          data: {
+            search,
+            // The main process needs the modifiers to decide where to open.
+            eventInfo: {
+              button: event.button,
+              shiftKey: event.shiftKey,
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              altKey: event.altKey,
             },
-          })
-        );
-        recordUserAction(USER_ACTION_TYPES.OPEN_LINK, { source: "widget" });
-        handleInteraction();
-      });
+          },
+        })
+      );
+      recordUserAction(USER_ACTION_TYPES.OPEN_LINK, { source: "widget" });
+      handleInteraction();
     },
     [dispatch, recordUserAction, handleInteraction]
   );
@@ -245,13 +238,10 @@ function RecentSearches({
           </div>
         </div>
         <div className="recent-searches-context-menu-wrapper">
-          <moz-button
+          <WidgetMenuButton
             className="recent-searches-context-menu-button"
-            iconSrc="chrome://global/skin/icons/more.svg"
             menuId="recent-searches-context-menu"
-            type="icon ghost"
-            size="small"
-            data-l10n-id="newtab-search-widget-menu-button"
+            l10nId="newtab-search-widget-open-menu-button"
           />
           <panel-list
             className="panel-list-no-icons"

@@ -23,7 +23,9 @@ const EXPECTED_REFLOWS = [
  */
 add_task(async function () {
   // Force-enable tab animations
-  gReduceMotionOverride = false;
+  await SpecialPowers.pushPrefEnv({
+    set: [["ui.prefersReducedMotion", 0]],
+  });
 
   // TODO (bug 1702653): Disable tab shadows for tests since the shadow
   // can extend outside of the boundingClientRect. The tabRect will need
@@ -82,14 +84,7 @@ add_task(async function () {
 
   const kTabCloseIconWidth = 13;
 
-  // The '+' button uses a different glyph under nova which paints 1px
-  // shorter than the proton one.
-  const kNewTabIconHeight = Services.prefs.getBoolPref(
-    "browser.nova.enabled",
-    false
-  )
-    ? 12
-    : 13;
+  const kNewTabIconHeight = 12;
 
   let isExpectedChange = function (r) {
     // We expect all changes to be within the tab strip.

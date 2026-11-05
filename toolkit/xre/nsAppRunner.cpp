@@ -61,9 +61,7 @@
 #  include "MacApplicationDelegate.h"
 #  include "MacAutoreleasePool.h"
 #  include "MacRunFromDmgUtils.h"
-#  ifdef NIGHTLY_BUILD
-#    include "ASWebAuthSessionHandler.h"
-#  endif
+#  include "ASWebAuthSessionHandler.h"
 // these are needed for sysctl
 #  include <sys/types.h>
 #  include <sys/sysctl.h>
@@ -176,6 +174,11 @@
 
 #include "nsINIParser.h"
 #include "mozilla/Omnijar.h"
+#include "nsZipArchive.h"
+#include "nsContentUtils.h"
+#include "mozilla/JSONStringWriteFuncs.h"
+#include "mozilla/ChromeScriptPath.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/StartupTimeline.h"
 #include "mozilla/LateWriteChecks.h"
 
@@ -226,6 +229,9 @@
 #include "nsICrashReporter.h"
 #include "nsIPrefService.h"
 #include "nsIMemoryInfoDumper.h"
+#include "js/ErrorReport.h"
+#include "js/Exception.h"
+#include "js/Wrapper.h"
 #include "js/String.h"
 #if defined(XP_LINUX) && !defined(ANDROID)
 #  include "mozilla/widget/LSBUtils.h"
@@ -480,7 +486,8 @@ bool IsWaylandEnabled() { return false; }
  * @param fmt
  *        printf-style format string followed by arguments.
  */
-static MOZ_FORMAT_PRINTF(2, 3) void Output(bool isError, const char* fmt, ...) {
+static MOZ_FORMAT_PRINTF(2, 3) void Output([[maybe_unused]] bool isError,
+                                           const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 
@@ -543,7 +550,6 @@ static ArgResult CheckArgExists(const char* aArg) {
 }
 
 bool gSafeMode = false;
-bool gFxREmbedded = false;
 
 enum E10sStatus {
   kE10sEnabledByDefault,
@@ -1657,7 +1663,7 @@ nsXULAppInfo::GetIsWayland(bool* aResult) {
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::GetProcessStartupShortcut(nsAString& aShortcut) {
+nsXULAppInfo::GetProcessStartupShortcut([[maybe_unused]] nsAString& aShortcut) {
 #if defined(XP_WIN)
   if (XRE_IsParentProcess()) {
     aShortcut.Assign(gProcessStartupShortcut);
@@ -1675,7 +1681,7 @@ static Maybe<LauncherRegistryInfo::EnabledState> gLauncherProcessState;
 #endif  // defined(XP_WIN) && defined(MOZ_LAUNCHER_PROCESS)
 
 NS_IMETHODIMP
-nsXULAppInfo::GetLauncherProcessState(uint32_t* aResult) {
+nsXULAppInfo::GetLauncherProcessState([[maybe_unused]] uint32_t* aResult) {
 #if defined(XP_WIN) && defined(MOZ_LAUNCHER_PROCESS)
   SetupLauncherProcessPref();
 
@@ -1929,12 +1935,7 @@ nsXULAppInfo::AppendAppNotesToCrashReport(const nsACString& data) {
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::RegisterAppMemory(uint64_t pointer, uint64_t len) {
-  return CrashReporter::RegisterAppMemory((void*)pointer, len);
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::WriteMinidumpForException(void* aExceptionInfo) {
+nsXULAppInfo::WriteMinidumpForException([[maybe_unused]] void* aExceptionInfo) {
 #ifdef XP_WIN
   return CrashReporter::WriteMinidumpForException(
       static_cast<EXCEPTION_POINTERS*>(aExceptionInfo));
@@ -1944,7 +1945,8 @@ nsXULAppInfo::WriteMinidumpForException(void* aExceptionInfo) {
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::AppendObjCExceptionInfoToAppNotes(void* aException) {
+nsXULAppInfo::AppendObjCExceptionInfoToAppNotes(
+    [[maybe_unused]] void* aException) {
 #ifdef XP_MACOSX
   return CrashReporter::AppendObjCExceptionInfoToAppNotes(aException);
 #else
@@ -2917,11 +2919,10 @@ static nsresult ProfileEncryptionMismatchDialog(const char* aMsgKey,
 #endif  // MOZ_WIDGET_ANDROID
 }
 
-static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
-                                              nsIFile* aProfileLocalDir,
-                                              nsIProfileUnlocker* aUnlocker,
-                                              nsINativeAppSupport* aNative,
-                                              nsIProfileLock** aResult) {
+static ReturnAbortOnError ProfileLockedDialog(
+    nsIFile* aProfileDir, nsIFile* aProfileLocalDir,
+    nsIProfileUnlocker* aUnlocker, nsINativeAppSupport* aNative,
+    [[maybe_unused]] nsIProfileLock** aResult) {
   nsresult rv;
 
   // We aren't going to start this instance so we can unblock other instances
@@ -3040,8 +3041,9 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
 
 MOZ_CAN_RUN_SCRIPT
 static ReturnAbortOnError ShowProfileDialog(
-    nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative,
-    const char* aDialogURL, const char* aTelemetryEnvVar) {
+    [[maybe_unused]] nsIToolkitProfileService* aProfileSvc,
+    nsINativeAppSupport* aNative, const char* aDialogURL,
+    const char* aTelemetryEnvVar) {
   nsresult rv;
 
   nsCOMPtr<nsIFile> profD, profLD;
@@ -3191,7 +3193,7 @@ static ReturnAbortOnError ShowProfileSelector(
 // hands an ASWebAuthenticationSession request to the process it launched rather
 // than to the relaunched one, so showing a dialog would drop the request.
 static bool ShouldSkipProfileDialogForWebAuth() {
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+#if defined(XP_MACOSX)
   return WasLaunchedByAuthenticationServices();
 #else
   return false;
@@ -3339,6 +3341,28 @@ struct FileWriteFunc final : public JSONWriteFunc {
   }
 };
 
+// Parses a JSON string and returns the raw install_timestamp value, or
+// Nothing() if the JSON is malformed or lacks the property.
+static mozilla::Maybe<uint64_t> ParseInstallTimestamp(
+    std::string_view aUtf8Json) {
+  Json::Value root;
+  Json::Reader reader;
+  if (!reader.parse(aUtf8Json.data(), aUtf8Json.data() + aUtf8Json.size(),
+                    root) ||
+      !root.isMember("install_timestamp")) {
+    return mozilla::Nothing();
+  }
+
+  std::string tsStr = root["install_timestamp"].asString();
+  char* end = nullptr;
+  uint64_t val = strtoull(tsStr.c_str(), &end, 10);
+  if (!end || *end != '\0') {
+    return mozilla::Nothing();
+  }
+  return mozilla::Some(val);
+}
+
+#  ifndef XP_MACOSX
 // Reads aJsonFile and returns the raw install_timestamp value, or Nothing() if
 // the file is absent, unreadable, or lacks the property.
 static mozilla::Maybe<uint64_t> ReadInstallTimestamp(nsIFile* aJsonFile,
@@ -3356,7 +3380,7 @@ static mozilla::Maybe<uint64_t> ReadInstallTimestamp(nsIFile* aJsonFile,
   }
   rewind(f.get());
 
-  auto buf = MakeUnique<uint8_t[]>(len);
+  auto buf = std::make_unique<uint8_t[]>(len);
   if (fread(buf.get(), 1, len, f.get()) != (size_t)len) {
     return mozilla::Nothing();
   }
@@ -3364,35 +3388,23 @@ static mozilla::Maybe<uint64_t> ReadInstallTimestamp(nsIFile* aJsonFile,
   nsAutoCString converted;
   std::string_view utf8View;
   if (aIsUTF16LE) {
-#  if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#    if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     const char16_t* chars = reinterpret_cast<const char16_t*>(buf.get());
     uint32_t charLen = len / 2;
     CopyUTF16toUTF8(Span(chars, charLen), converted);
     utf8View = std::string_view(converted.get(), converted.Length());
-#  else
+#    else
     MOZ_ASSERT_UNREACHABLE(
         "UTF-16LE reading not supported on big-endian architectures");
     return mozilla::Nothing();
-#  endif
+#    endif
   } else {
     utf8View = std::string_view(reinterpret_cast<const char*>(buf.get()), len);
   }
 
-  Json::Value root;
-  Json::Reader reader;
-  if (!reader.parse(utf8View.data(), utf8View.data() + utf8View.size(), root) ||
-      !root.isMember("install_timestamp")) {
-    return mozilla::Nothing();
-  }
-
-  std::string tsStr = root["install_timestamp"].asString();
-  char* end = nullptr;
-  uint64_t val = strtoull(tsStr.c_str(), &end, 10);
-  if (*end != '\0') {
-    return mozilla::Nothing();
-  }
-  return mozilla::Some(val);
+  return ParseInstallTimestamp(utf8View);
 }
+#  endif  // !XP_MACOSX
 
 Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
     const nsACString& aPingId, const nsCString& aLastVersion, bool aHasSync,
@@ -3456,6 +3468,38 @@ Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
     }
 #  endif
 
+#  ifdef XP_MACOSX
+    // GreD is <app>.app/Contents/Resources; go up two levels to the .app
+    // bundle directory where the updater stores the xattr.
+    maybeUpdateTime = [&]() -> mozilla::Maybe<PRTime> {
+      nsCOMPtr<nsIFile> contentsDir;
+      if (NS_FAILED(greDir->GetParent(getter_AddRefs(contentsDir))) ||
+          !contentsDir) {
+        return mozilla::Nothing();
+      }
+      nsCOMPtr<nsIFile> appBundle;
+      if (NS_FAILED(contentsDir->GetParent(getter_AddRefs(appBundle))) ||
+          !appBundle) {
+        return mozilla::Nothing();
+      }
+      nsCOMPtr<nsILocalFileMac> macFile = do_QueryInterface(appBundle);
+      if (!macFile) {
+        return mozilla::Nothing();
+      }
+      nsTArray<uint8_t> attrValue;
+      if (NS_FAILED(macFile->GetXAttr("org.mozilla.update-telemetry"_ns,
+                                      attrValue))) {
+        return mozilla::Nothing();
+      }
+      auto msTime = ParseInstallTimestamp(
+          std::string_view(reinterpret_cast<const char*>(attrValue.Elements()),
+                           attrValue.Length()));
+      if (!msTime) {
+        return mozilla::Nothing();
+      }
+      return mozilla::Some(PRTime(int64_t(*msTime) * PR_USEC_PER_MSEC));
+    }();
+#  else
     // update_telemetry.json uses a Unix timestamp in milliseconds.
     nsCOMPtr<nsIFile> updateTelemetry;
     if (NS_SUCCEEDED(greDir->Clone(getter_AddRefs(updateTelemetry))) &&
@@ -3466,6 +3510,7 @@ Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
             mozilla::Some(PRTime(int64_t(*msTime) * PR_USEC_PER_MSEC));
       }
     }
+#  endif
   }
 
   PRTime nowUsec = PR_Now();
@@ -3500,7 +3545,7 @@ Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
   rv = pingFile->OpenANSIFileDesc("w", &file);
   NS_ENSURE_SUCCESS(rv, Nothing());
 
-  JSONWriter w(MakeUnique<FileWriteFunc>(file));
+  JSONWriter w(std::make_unique<FileWriteFunc>(file));
   w.Start();
   {
     w.StringProperty("type",
@@ -4356,16 +4401,12 @@ static bool CheckForUserMismatch() { return false; }
 
 void mozilla::startup::IncreaseDescriptorLimits() {
 #ifdef XP_UNIX
-  // Increase the fd limit to accomodate IPC resources like shared memory.
-#  ifdef XP_DARWIN
-  // We use Mach IPC for shared memory, so a lower limit suffices.
-  // See also the Darwin case in config/external/nspr/pr/moz.build
-  static constexpr rlim_t kFDs = 4096;
-#  else   // Unix but not Darwin
+  // Increase the fd limit to accommodate IPC resources like shared memory.
   // This can be increased if needed, but also be aware that Linux
-  // distributions may impose hard limits less than this.
+  // distributions may impose hard limits less than this. macOS accepts any
+  // value and caps the effective limit at kern.maxfilesperproc, and it must
+  // not exceed the FD_SETSIZE in config/external/nspr/pr/moz.build.
   static constexpr rlim_t kFDs = 65536;
-#  endif  // Darwin or not
   struct rlimit rlim;
 
   if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
@@ -4556,10 +4597,6 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     ChaosMode::SetChaosFeature(feature);
     ChaosMode::enterChaosMode();
     MOZ_ASSERT(ChaosMode::isActive(ChaosFeature::Any));
-  }
-
-  if (CheckArgExists("fxr")) {
-    gFxREmbedded = true;
   }
 
   if (ChaosMode::isActive(ChaosFeature::Any)) {
@@ -4974,8 +5011,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     return 1;
   }
   if (ar == ARG_FOUND) {
-    UniquePtr<DBusService> dbusService =
-        MakeUnique<DBusService>(dbusServiceLauncher);
+    auto dbusService = std::make_unique<DBusService>(dbusServiceLauncher);
     if (dbusService->Init()) {
       dbusService->Run();
     }
@@ -6006,6 +6042,70 @@ void AddSandboxAnnotations() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
 }
 #endif /* MOZ_SANDBOX */
 
+static bool IsSystemPrincipalException(JS::Handle<JS::Value> aExn) {
+  if (!aExn.isObject()) {
+    return false;
+  }
+  JSObject* obj = js::UncheckedUnwrap(&aExn.toObject());
+  return nsContentUtils::ObjectPrincipal(obj)->IsSystemPrincipal();
+}
+
+static void AnnotateOmnijarCanaryFailure(JSContext* aCx, nsresult aRv,
+                                         mozilla::Omnijar::Type aOmnijar,
+                                         const nsACString& aEntry) {
+  mozilla::JSONStringWriteFunc<nsAutoCString> json;
+  mozilla::JSONWriter w(json, mozilla::JSONWriter::SingleLineStyle);
+  w.Start();
+  nsAutoCString rvName;
+  mozilla::GetErrorName(aRv, rvName);
+  w.StringProperty("rv", rvName);
+
+  JS::ExceptionStack exnStack(aCx);
+  bool hasException = JS_IsExceptionPending(aCx) &&
+                      JS::StealPendingExceptionStack(aCx, &exnStack);
+  w.BoolProperty("exn", hasException);
+  if (hasException) {
+    bool isChrome = IsSystemPrincipalException(exnStack.exception());
+    w.BoolProperty("exnChrome", isChrome);
+    JS::ErrorReportBuilder builder(aCx);
+    if (builder.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+      if (JSErrorReport* report = builder.report()) {
+        w.IntProperty("exnNumber", report->errorNumber);
+        if (isChrome && report->filename) {
+          w.StringProperty(
+              "exnFile",
+              mozilla::MakeStringSpan(mozilla::GetReportableChromeScriptPath(
+                  report->filename.c_str())));
+          w.IntProperty("exnLine", report->lineno);
+        }
+      }
+    }
+  }
+
+  nsCOMPtr<nsIFile> omnijar = mozilla::Omnijar::GetPath(aOmnijar);
+  w.BoolProperty("omnijar", !!omnijar);
+  int64_t omnijarSize = 0;
+  if (omnijar && NS_SUCCEEDED(omnijar->GetFileSize(&omnijarSize))) {
+    w.IntProperty("omnijarSize", omnijarSize);
+  }
+
+  RefPtr<nsZipArchive> zip = mozilla::Omnijar::GetReader(aOmnijar);
+  w.BoolProperty("reader", !!zip);
+  if (zip) {
+    nsZipItem* item = zip->GetItem(aEntry);
+    w.BoolProperty("entry", !!item);
+    if (item) {
+      nsZipItemPtr<char> data(zip, aEntry, /* doCRC */ true);
+      w.IntProperty("entrySize", item->RealSize());
+      w.BoolProperty("entryRead", !!data.Buffer());
+    }
+  }
+  w.End();
+
+  CrashReporter::RecordAnnotationNSCString(
+      CrashReporter::Annotation::OmnijarCanaryFailure, json.StringCRef());
+}
+
 /*
  * XRE_mainRun - Command line startup, profile migration, and
  * the calling of appStartup->Run().
@@ -6242,9 +6342,12 @@ nsresult XREMain::XRE_mainRun() {
       JS::Rooted<JSObject*> mod(jsapi.cx());
       // AppConstants.sys.mjs is small, widely used and most likely will
       // never go away.
+      constexpr auto canaryEntry = "modules/AppConstants.sys.mjs"_ns;
       rv = mozJSModuleLoader::Get()->ImportESModule(
-          jsapi.cx(), "resource://gre/modules/AppConstants.sys.mjs"_ns, &mod);
+          jsapi.cx(), nsAutoCString("resource://gre/"_ns + canaryEntry), &mod);
       if (NS_FAILED(rv)) {
+        AnnotateOmnijarCanaryFailure(jsapi.cx(), rv, mozilla::Omnijar::GRE,
+                                     canaryEntry);
         return NS_ERROR_OMNIJAR_OR_DIR_MISSING;
       }
     }
@@ -6414,7 +6517,7 @@ nsresult XREMain::XRE_mainRun() {
 #  endif
 #endif
 
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+#if defined(XP_MACOSX)
       RegisterASWebAuthSessionObservers();
 #endif
 
@@ -6590,7 +6693,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   nsresult rv = NS_OK;
 
   if (aConfig.appData) {
-    mAppData = MakeUnique<XREAppData>(*aConfig.appData);
+    mAppData = std::make_unique<XREAppData>(*aConfig.appData);
   } else {
     MOZ_RELEASE_ASSERT(aConfig.appDataPath);
     nsCOMPtr<nsIFile> appini;
@@ -6600,7 +6703,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
       return 1;
     }
 
-    mAppData = MakeUnique<XREAppData>();
+    mAppData = std::make_unique<XREAppData>();
     rv = XRE_ParseAppData(appini, *mAppData);
     if (NS_FAILED(rv)) {
       Output(true, "Couldn't read application.ini");
@@ -6748,7 +6851,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   // Start the real application. We use |aInitJSContext = false| because
   // XRE_mainRun wants to initialize the JSContext after reading user prefs.
 
-  mScopedXPCOM = MakeUnique<ScopedXPCOMStartup>();
+  mScopedXPCOM = std::make_unique<ScopedXPCOMStartup>();
 
   rv = mScopedXPCOM->Initialize(/* aInitJSContext = */ false);
   if (rv == NS_ERROR_OMNIJAR_CORRUPT) {
@@ -6946,7 +7049,6 @@ bool XRE_UseNativeEventProcessing() {
   switch (XRE_GetProcessType()) {
 #if defined(XP_DARWIN) || defined(XP_WIN)
     case GeckoProcessType_RDD:
-    case GeckoProcessType_Socket:
       return false;
     case GeckoProcessType_Utility: {
 #  if defined(XP_WIN)

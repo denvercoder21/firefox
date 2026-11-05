@@ -73,6 +73,9 @@ class CrashReporterInitArgs;
 
 namespace mozilla {
 class PClipboardWriteRequestParent;
+#ifdef MOZ_WIDGET_ANDROID
+class ProcInfoParent;
+#endif
 class PRemoteSpellcheckEngineParent;
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
@@ -543,7 +546,8 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvNotifyShutdownSuccess();
 
-  PContentPermissionRequestParent* AllocPContentPermissionRequestParent(
+  already_AddRefed<PContentPermissionRequestParent>
+  AllocPContentPermissionRequestParent(
       const nsTArray<PermissionRequest>& aRequests, nsIPrincipal* aPrincipal,
       nsIPrincipal* aTopLevelPrincipal, const bool& aIsHandlingUserInput,
       const bool& aMaybeUnsafePermissionDelegate, const TabId& aTabId,
@@ -555,9 +559,6 @@ class ContentParent final : public PContentParent,
       nsIPrincipal* aTopLevelPrincipal, const bool& aIsHandlingUserInput,
       const bool& aMaybeUnsafePermissionDelegate, const TabId& tabId,
       const bool& aIgnoreAllowSitePermission) override;
-
-  bool DeallocPContentPermissionRequestParent(
-      PContentPermissionRequestParent* actor);
 
   void ForkNewProcess(bool aBlocking);
 
@@ -1073,6 +1074,13 @@ class ContentParent final : public PContentParent,
       StructuredCloneData* aStack = nullptr);
 
  public:
+  /**
+   * Returns the canonical browsing context for `aContext` if it's managed by
+   * this ContentParent and is current, otherwise null.
+   */
+  CanonicalBrowsingContext* GetBrowsingContextIfCurrent(
+      const MaybeDiscardedWindowContext& aContext);
+
   mozilla::ipc::IPCResult RecvCommitBrowsingContextTransaction(
       const MaybeDiscarded<BrowsingContext>& aContext,
       BrowsingContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
@@ -1080,9 +1088,6 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvCommitWindowContextTransaction(
       const MaybeDiscarded<WindowContext>& aContext,
       WindowContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
-
-  mozilla::ipc::IPCResult RecvAddSecurityState(
-      const MaybeDiscarded<WindowContext>& aContext, uint32_t aStateFlags);
 
   mozilla::ipc::IPCResult RecvFirstIdle();
 
@@ -1126,8 +1131,10 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvAcquireHWInferenceProcess();
 
+#  ifdef MOZ_WEBSPEECH
   mozilla::ipc::IPCResult RecvCreateSpeechRecognition(
       Endpoint<hwinference::PSpeechRecognitionParent>&& aEndpoint);
+#  endif
 
   mozilla::ipc::IPCResult RecvReleaseHWInferenceConnection();
 #endif  // !ANDROID
@@ -1353,13 +1360,14 @@ class ContentParent final : public PContentParent,
       const MaybeDiscarded<BrowsingContext>& aContext);
 
   mozilla::ipc::IPCResult RecvSetActiveSessionHistoryEntry(
-      const MaybeDiscarded<BrowsingContext>& aContext,
+      const MaybeDiscarded<WindowContext>& aContext,
       const Maybe<nsPoint>& aPreviousScrollPos, SessionHistoryInfo&& aInfo,
-      uint32_t aLoadType, uint32_t aUpdatedCacheKey, const nsID& aChangeID);
+      uint32_t aLoadType, uint32_t aUpdatedCacheKey, const nsID& aChangeID,
+      const Maybe<NewSessionHistorySharedState>& aNewSharedState);
 
   mozilla::ipc::IPCResult RecvReplaceActiveSessionHistoryEntry(
-      const MaybeDiscarded<BrowsingContext>& aContext,
-      SessionHistoryInfo&& aInfo);
+      const MaybeDiscarded<WindowContext>& aContext, SessionHistoryInfo&& aInfo,
+      const Maybe<NewSessionHistorySharedState>& aNewSharedState);
 
   mozilla::ipc::IPCResult RecvRemoveDynEntriesFromActiveSessionHistoryEntry(
       const MaybeDiscarded<BrowsingContext>& aContext);
@@ -1496,7 +1504,7 @@ class ContentParent final : public PContentParent,
   // release these objects in ShutDownProcess.  See the comment there for more
   // details.
 
-  GeckoChildProcessHost* mSubprocess;
+  RefPtr<GeckoChildProcessHost> mSubprocess;
   const TimeStamp mLaunchTS;  // used to calculate time to start content process
   TimeStamp mLaunchYieldTS;   // used to calculate async launch main thread time
 
@@ -1590,6 +1598,10 @@ class ContentParent final : public PContentParent,
   // Dup of child's X socket, used to scope its resources to this
   // object instead of the child process's lifetime.
   UniqueFileHandle mChildXSocketFdDup;
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+  RefPtr<ProcInfoParent> mProcInfoParent;
 #endif
 
   RefPtr<PProcessHangMonitorParent> mHangMonitorActor;

@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <memory>
 #include <regex>
 #include <string>
 #include <vector>
@@ -94,6 +95,7 @@ static const char* const sExtensionNames[] = {
     "GL_APPLE_vertex_array_object",
     "GL_ARB_ES2_compatibility",
     "GL_ARB_ES3_compatibility",
+    "GL_ARB_clip_control",
     "GL_ARB_color_buffer_float",
     "GL_ARB_compatibility",
     "GL_ARB_copy_buffer",
@@ -124,6 +126,7 @@ static const char* const sExtensionNames[] = {
     "GL_ARB_texture_compression_bptc",
     "GL_ARB_texture_compression_rgtc",
     "GL_ARB_texture_float",
+    "GL_ARB_texture_mirror_clamp_to_edge",
     "GL_ARB_texture_non_power_of_two",
     "GL_ARB_texture_rectangle",
     "GL_ARB_texture_rg",
@@ -137,6 +140,7 @@ static const char* const sExtensionNames[] = {
     "GL_CHROMIUM_color_buffer_float_rgba",
     "GL_EXT_bgra",
     "GL_EXT_blend_minmax",
+    "GL_EXT_clip_control",
     "GL_EXT_color_buffer_float",
     "GL_EXT_color_buffer_half_float",
     "GL_EXT_copy_texture",
@@ -170,6 +174,7 @@ static const char* const sExtensionNames[] = {
     "GL_EXT_texture_compression_s3tc_srgb",
     "GL_EXT_texture_filter_anisotropic",
     "GL_EXT_texture_format_BGRA8888",
+    "GL_EXT_texture_mirror_clamp_to_edge",
     "GL_EXT_texture_norm16",
     "GL_EXT_texture_sRGB",
     "GL_EXT_texture_storage",
@@ -1558,6 +1563,13 @@ void GLContext::LoadMoreSymbols(const SymbolLoader& loader) {
     fnLoadForFeature(symbols, GLFeature::polygon_offset_clamp);
   }
 
+  if (IsSupported(GLFeature::clip_control)) {
+    const SymLoadStruct symbols[] = {{(PRFuncPtr*)&mSymbols.fClipControl,
+                                      {{"glClipControl", "glClipControlEXT"}}},
+                                     END_SYMBOLS};
+    fnLoadForFeature(symbols, GLFeature::clip_control);
+  }
+
   if (IsExtensionSupported(EXT_semaphore)) {
     const SymLoadStruct symbols[] = {
         {(PRFuncPtr*)&mSymbols.fDeleteSemaphoresEXT,
@@ -2227,7 +2239,7 @@ bool GLContext::IsValidOwningThread() const {
 
 GLBlitHelper* GLContext::BlitHelper() {
   if (!mBlitHelper) {
-    mBlitHelper.reset(new GLBlitHelper(this));
+    mBlitHelper = std::make_unique<GLBlitHelper>(this);
   }
 
   return mBlitHelper.get();
@@ -2235,7 +2247,7 @@ GLBlitHelper* GLContext::BlitHelper() {
 
 GLReadTexImageHelper* GLContext::ReadTexImageHelper() {
   if (!mReadTexImageHelper) {
-    mReadTexImageHelper = MakeUnique<GLReadTexImageHelper>(this);
+    mReadTexImageHelper = std::make_unique<GLReadTexImageHelper>(this);
   }
 
   return mReadTexImageHelper.get();
@@ -2477,7 +2489,7 @@ UniquePtr<Texture> CreateTexture(GLContext& gl, const gfx::IntSize& size) {
   const GLenum target = LOCAL_GL_TEXTURE_2D;
   const GLenum format = LOCAL_GL_RGBA;
 
-  auto tex = MakeUnique<Texture>(gl);
+  auto tex = std::make_unique<Texture>(gl);
   ScopedBindTexture autoTex(&gl, tex->name, target);
 
   gl.fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
@@ -2705,7 +2717,7 @@ void GLContext::BeforeGLCall_Debug(const char* const funcName) const {
   }
 
   MOZ_ASSERT(!mDebugErrorScope);
-  mDebugErrorScope.reset(new LocalErrorScope(*this));
+  mDebugErrorScope = std::make_unique<LocalErrorScope>(*this);
 }
 
 void GLContext::AfterGLCall_Debug(const char* const funcName) const {

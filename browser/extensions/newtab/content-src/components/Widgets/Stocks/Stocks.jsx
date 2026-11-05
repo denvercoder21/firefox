@@ -11,7 +11,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useSelector, batch } from "react-redux";
+import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useWidgetTelemetry } from "../useWidgetTelemetry";
 import {
@@ -27,11 +27,13 @@ import {
   normalize,
   MAX_STOCKS_WATCHLIST,
 } from "common/StocksWatchlist.mjs";
+import { WidgetMenuButton } from "../WidgetMenuButton";
 import { WidgetMenuFooter } from "../WidgetMenuFooter";
 import { SizeSubmenu } from "../SizeSubmenu";
 import { StockTicker } from "./StockTicker";
 import { StockSearch } from "./StockSearch";
-import { focusOnceRendered, useStockSearch } from "./useStockSearch";
+import { focusOnceRendered } from "../../../lib/utils";
+import { useStockSearch } from "./useStockSearch";
 import { StocksError } from "./StocksError";
 
 const STOCKS_ENTRY = WIDGET_REGISTRY.find(w => w.id === "stocks");
@@ -330,20 +332,18 @@ function Stocks({
 
   const handleChangeSize = useCallback(
     size => {
-      batch(() => {
-        dispatch(
-          ac.OnlyToMain({
-            type: at.SET_PREF,
-            data: { name: STOCKS_ENTRY.sizePref, value: size },
-          })
-        );
-        recordUserAction("change_size", {
-          source: "context_menu",
-          value: size,
-          size,
-        });
-        handleInteraction();
+      dispatch(
+        ac.OnlyToMain({
+          type: at.SET_PREF,
+          data: { name: STOCKS_ENTRY.sizePref, value: size },
+        })
+      );
+      recordUserAction("change_size", {
+        source: "context_menu",
+        value: size,
+        size,
       });
+      handleInteraction();
     },
     [dispatch, recordUserAction, handleInteraction]
   );
@@ -551,14 +551,11 @@ function Stocks({
               )}
             </div>
             <div className="stocks-context-menu-wrapper">
-              <moz-button
-                ref={menuButtonRef}
+              <WidgetMenuButton
                 className="stocks-context-menu-button"
-                iconSrc="chrome://global/skin/icons/more.svg"
                 menuId="stocks-context-menu"
-                type="icon ghost"
-                size="small"
-                data-l10n-id="newtab-stocks-widget-menu-button2"
+                l10nId="newtab-stocks-widget-open-menu-button2"
+                ref={menuButtonRef}
               />
               <panel-list
                 className="panel-list-no-icons"

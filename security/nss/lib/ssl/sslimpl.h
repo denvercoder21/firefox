@@ -315,6 +315,7 @@ typedef struct sslOptionsStr {
     unsigned int enableGrease : 1;
     unsigned int enableChXtnPermutation : 1;
     unsigned int dbLoadCertChain : 1;
+    unsigned int enablePlaintextResumptionExport : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -432,7 +433,9 @@ struct sslSessionIDStr {
      * be modified only when the sid is not in any cache.
      */
 
-    CERTCertificate *peerCert;
+    /* DER of the peer's end-entity certificate.  Owned by the sid; empty if
+     * the peer did not send a certificate. */
+    SECItem peerCertDER;
     SECItemArray peerCertStatus;        /* client only */
     const char *peerID;                 /* client only */
     const char *urlSvrName;             /* client only */
@@ -603,7 +606,7 @@ typedef struct DTLSQueuedMessageStr {
     ssl3CipherSpec *cwSpec; /* The cipher spec to use, null for none */
     SSLContentType type;    /* The message type */
     unsigned char *data;    /* The data */
-    PRUint16 len;           /* The data length */
+    PRUint32 len;           /* The data length */
 } DTLSQueuedMessage;
 
 struct TLS13KeyShareEntryStr {
@@ -1032,7 +1035,20 @@ struct sslSecurityInfoStr {
     sslBuffer writeBuf; /*xmitBufLock*/
 
     CERTCertificate *localCert;
-    CERTCertificate *peerCert;
+    /* The peer's end-entity certificate, held as DER rather than as a
+     * CERTCertificate so that the handshake does not have to instantiate a
+     * CERTCertificate or consult a certificate database.  |peerCertSPKI| is
+     * the subjectPublicKeyInfo parsed out of |peerCertDER| when it was set,
+     * so that the certificate is only ever decoded once.  Both are owned by
+     * this struct and are set and cleared together, by
+     * ssl_SetPeerCertificate() and ssl_ClearPeerCertificate(); both are empty
+     * if the peer did not send a certificate.  The (few) places that have to
+     * hand a CERTCertificate to an application build one with
+     * CERT_NewTempCertificate(). */
+    SECItem peerCertDER;
+    CERTSubjectPublicKeyInfo *peerCertSPKI;
+    /* The peer's ephemeral key from ServerKeyExchange -- not the key in
+     * |peerCertDER|. */
     SECKEYPublicKey *peerKey;
 
     SSLAuthType authType;
@@ -1649,6 +1665,16 @@ extern PRBool ssl_SignatureSchemeEnabled(const sslSocket *ss,
 extern PRBool ssl_IsSupportedSignatureScheme(SSLSignatureScheme scheme);
 extern SECStatus ssl_CheckSignatureSchemeConsistency(
     sslSocket *ss, SSLSignatureScheme scheme, CERTSubjectPublicKeyInfo *spki);
+/* Parse the subjectPublicKeyInfo out of a DER-encoded certificate without
+ * instantiating a lasting CERTCertificate and without touching any
+ * certificate database.  Free the result with
+ * SECKEY_DestroySubjectPublicKeyInfo(). */
+extern CERTSubjectPublicKeyInfo *ssl_ExtractSPKIFromDER(const SECItem *derCert);
+/* Install |derCert| as the peer's end-entity certificate, replacing any
+ * previous one.  Fails if no subjectPublicKeyInfo can be parsed out of it. */
+extern SECStatus ssl_SetPeerCertificate(sslSecurityInfo *sec,
+                                        const SECItem *derCert);
+extern void ssl_ClearPeerCertificate(sslSecurityInfo *sec);
 extern SECStatus ssl_ParseSignatureSchemes(const sslSocket *ss, PLArenaPool *arena,
                                            SSLSignatureScheme **schemesOut,
                                            unsigned int *numSchemesOut,
@@ -1887,7 +1913,8 @@ PRBool ssl_AlpnTagAllowed(const sslSocket *ss, const SECItem *tag);
 void ssl_Trace(const char *format, ...);
 
 void ssl_CacheExternalToken(sslSocket *ss);
-SECStatus ssl_DecodeResumptionToken(sslSessionID *sid, const PRUint8 *encodedTicket,
+SECStatus ssl_DecodeResumptionToken(sslSocket *ss, sslSessionID *sid,
+                                    const PRUint8 *encodedTicket,
                                     PRUint32 encodedTicketLen);
 PRBool ssl_IsResumptionTokenUsable(sslSocket *ss, sslSessionID *sid);
 
@@ -1909,6 +1936,7 @@ SECStatus SSLExp_SetResumptionTokenCallback(PRFileDesc *fd,
                                             void *ctx);
 SECStatus SSLExp_SetResumptionToken(PRFileDesc *fd, const PRUint8 *token,
                                     unsigned int len);
+SECStatus SSLExp_EnablePlaintextResumptionExport(PRFileDesc *fd, PRBool enabled);
 
 SECStatus SSLExp_GetResumptionTokenInfo(const PRUint8 *tokenData, unsigned int tokenLen,
                                         SSLResumptionTokenInfo *token, unsigned int version);
@@ -1926,7 +1954,10 @@ SECStatus SSLExp_RecordLayerData(PRFileDesc *fd, PRUint16 epoch,
 SECStatus SSLExp_GetCurrentEpoch(PRFileDesc *fd, PRUint16 *readEpoch,
                                  PRUint16 *writeEpoch);
 
-#define SSLResumptionTokenVersion 2
+#define SSLResumptionTokenVersion 3
+#define SSLResumptionTokenFeatureRawMS 0x01
+/* 0x80 is reserved to signal a longer feature field. */
+#define SSLResumptionTokenSupportedFeatures SSLResumptionTokenFeatureRawMS
 
 SECStatus SSLExp_MakeAead(PRUint16 version, PRUint16 cipherSuite, PK11SymKey *secret,
                           const char *labelPrefix, unsigned int labelPrefixLen,

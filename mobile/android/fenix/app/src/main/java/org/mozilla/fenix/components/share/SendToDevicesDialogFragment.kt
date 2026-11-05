@@ -32,6 +32,7 @@ import mozilla.components.concept.sync.TabPrivacy
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.lib.state.helpers.StoreProvider.Companion.fragmentStore
 import mozilla.components.lib.state.helpers.StoreProvider.Companion.storeProvider
+import mozilla.components.service.fxa.FxaService
 import mozilla.components.service.fxa.manager.SCOPE_PROFILE
 import mozilla.components.service.fxa.manager.SCOPE_SYNC
 import mozilla.components.support.utils.ext.isLandscape
@@ -44,6 +45,7 @@ import org.mozilla.fenix.components.share.store.ShareUiState
 import org.mozilla.fenix.components.share.store.ShareUiStore
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.account.SignOutFragment
 import org.mozilla.fenix.share.listadapters.SyncShareOption
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
@@ -89,6 +91,9 @@ class SendToDevicesDialogFragment : BottomSheetDialogFragment() {
                     removeAccountFromSync()
                 },
                 onRetryClicked = { deviceObserver.refreshDevices(null) },
+                onLearnMoreClicked = {
+                    openLearnMoreLink()
+                },
             )
         }
     }
@@ -157,9 +162,10 @@ class SendToDevicesDialogFragment : BottomSheetDialogFragment() {
 
     private fun reconnectToSync(context: Context) {
         context.components.services.accountsAuthFeature.beginAuthentication(
-            context,
-            FenixFxAEntryPoint.ShareMenu,
-            setOf(SCOPE_PROFILE, SCOPE_SYNC),
+            context = context,
+            entrypoint = FenixFxAEntryPoint.ShareMenu,
+            service = FxaService.Sync.identifier,
+            scopes = setOf(SCOPE_PROFILE, SCOPE_SYNC),
         )
         SyncAuth.useEmailProblem.record(NoExtras())
     }
@@ -190,8 +196,13 @@ class SendToDevicesDialogFragment : BottomSheetDialogFragment() {
                 },
                 send = send,
             )
-            dismiss()
+            dismissAllowingStateLoss()
         }
+    }
+
+    private fun openLearnMoreLink() {
+        val url = SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.CONNECT_ADDITIONAL_DEVICES_TO_SYNC)
+        SupportUtils.launchSandboxCustomTab(requireContext(), url)
     }
 
     /**

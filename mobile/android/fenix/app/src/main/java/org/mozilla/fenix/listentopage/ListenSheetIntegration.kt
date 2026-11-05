@@ -4,56 +4,67 @@
 
 package org.mozilla.fenix.listentopage
 
-import android.text.format.DateUtils
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.isVisible
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.abs
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.take
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.listentopage.ArticleProgress
 import mozilla.components.feature.listentopage.ListenAction
 import mozilla.components.feature.listentopage.ListenState
 import mozilla.components.feature.listentopage.ListenStore
-import mozilla.components.feature.listentopage.PlaybackPhase
-import mozilla.components.feature.listentopage.ui.ArticleDetails
+import mozilla.components.feature.listentopage.PlayerMode
+import mozilla.components.feature.listentopage.settings.ListenEnabledState
 import mozilla.components.feature.listentopage.ui.ListenSheet
+import mozilla.components.feature.listentopage.ui.ListenSheetUiState
+import mozilla.components.feature.listentopage.ui.toListenSheetUiState
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
-private const val MS_PER_SECOND = 1000L
-
-private val ListenState.isArticleReady: Boolean
-    get() = tabId != null && languageTag != null
-
-internal const val LISTEN_SHEET_TEST_TAG = "listenSheet"
+/** Whether the player has something to show. This could be either a ready to play state or an error state. */
+internal val ListenState.hasPlayerContent: Boolean
+    get() = tabId != null && (languageTag != null || error != null)
 
 /**
- * This integration is responsible for adding or removing the reader mode panel and the Listen to page media player, and
+ * This integration is responsible for showing or hiding the reader mode panel and the Listen to page media player, and
  * properly anchoring them to the browser.
  *
  * @param container The [CoordinatorLayout] the panel and the player are added to.
  * @param browserStore Used to tell whether reader mode is showing.
  * @param listenStore Used to tell whether there is an article to play.
+ * @param engineView Used to tell how far the article is scrolled.
  * @param isAddressBarAtBottom Whether the address bar is at the bottom of the screen.
+ * @param isEnabled Whether the user has the feature turned on. The listen button is only shown when it is
+ *   [ListenEnabledState.Enabled].
  * @param onListenClicked Invoked when the user asks to listen to the article.
  * @param onCustomizeReaderViewClicked Invoked when the user asks for the reader view appearance controls.
  */
@@ -61,7 +72,9 @@ class ListenSheetIntegration(
     private val container: CoordinatorLayout,
     private val browserStore: BrowserStore,
     private val listenStore: ListenStore,
+    private val engineView: EngineView,
     private val isAddressBarAtBottom: Boolean,
+    private val isEnabled: StateFlow<ListenEnabledState>,
     private val onListenClicked: () -> Unit,
     private val onCustomizeReaderViewClicked: () -> Unit,
 ) : LifecycleAwareFeature {
@@ -69,10 +82,17 @@ class ListenSheetIntegration(
     private var listenFeature: ComposeView? = null
 
     override fun start() {
-        if (listenFeature != null) return
+        listenFeature?.let {
+            // Set again because stop() disposes the composition while the view keeps its place in the container.
+            it.setContent { ListenFeatureHost() }
+            it.isVisible = true
+            return
+        }
+
         val view =
             ComposeView(container.context).apply {
                 id = R.id.listenSheet
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
                 layoutParams =
                     CoordinatorLayout.LayoutParams(
                             CoordinatorLayout.LayoutParams.MATCH_PARENT,
@@ -80,19 +100,24 @@ class ListenSheetIntegration(
                         )
                         .apply { behavior = ListenSheetBehavior(isAddressBarAtBottom = isAddressBarAtBottom) }
                 setContent { ListenFeatureHost() }
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             }
         listenFeature = view
 
         container.post {
             if (listenFeature === view) {
                 container.addView(view)
+                container.findViewById<View>(R.id.engineView)?.accessibilityTraversalAfter = view.id
             }
         }
     }
 
     override fun stop() {
-        container.removeView(listenFeature)
-        listenFeature = null
+        listenFeature?.apply {
+            isVisible = false
+            // The view stays so that a snackbar anchored to it still resolves.
+            disposeComposition()
+        }
     }
 
     @Composable
@@ -104,21 +129,23 @@ class ListenSheetIntegration(
         }
 
         val selectedTabIdState = browserStore.observeAsComposableState { it.selectedTabId }
-        val listenStateHolder = listenStore.stateFlow.collectAsStateWithLifecycle()
+        val readyTabIdState = listenStore.observeAsComposableState { if (it.hasPlayerContent) it.tabId else null }
+        val listenSheetUiState by listenStore.observeAsComposableState { it.toListenSheetUiState() }
+        val isListeningEnabled by isEnabled.collectAsStateWithLifecycle()
         val articleProgressState = listenStore.observeAsComposableState { it.articleProgress }
-        val progressState = listenStore.observeAsComposableState { it.articleProgress.fraction }
         val shouldDisplayPlayer by remember {
-            derivedStateOf(structuralEqualityPolicy()) {
-                val s = listenStateHolder.value
-                s.isArticleReady && s.tabId == selectedTabIdState.value
+            derivedStateOf {
+                val s = readyTabIdState.value
+                s != null && s == selectedTabIdState.value
             }
         }
         FirefoxTheme {
             ListenFeatureContent(
                 shouldDisplayPlayer = shouldDisplayPlayer,
-                state = listenStateHolder,
+                isListeningEnabled = isListeningEnabled == ListenEnabledState.Enabled,
+                uiState = listenSheetUiState,
                 articleProgressState = articleProgressState,
-                progressState = progressState,
+                scrollPosition = engineView.verticalScrollPosition,
                 onAction = listenStore::dispatch,
                 onListenClicked = onListenClicked,
                 onCustomizeReaderViewClicked = onCustomizeReaderViewClicked,
@@ -132,31 +159,45 @@ class ListenSheetIntegration(
  * the article audio is ready for playback.
  *
  * @param shouldDisplayPlayer Whether the audio of the article in the selected tab is ready for playback.
- * @param state Contains title, site and playback state needed for media player
- * @param articleProgressState Contains position and duration needed to show elapsed time and total time in player.
- * @param progressState Contains calculated fraction of playback progress to be reflected in AudioProgressBar of player.
+ * @param isListeningEnabled Whether the reader mode panel shows the button that reads the article out loud.
+ * @param uiState Contains title, site and playback state needed for media player
+ * @param articleProgressState Contains position and duration needed to show elapsed time, total time and progress in
+ *   player.
+ * @param scrollPosition How far the article is scrolled, in pixels, which collapses the player.
  * @param onAction Invoked to pass upwards a [ListenAction] in response to a UI event.
  * @param onListenClicked Invoked when the user asks to listen to the article.
  * @param onCustomizeReaderViewClicked Invoked when the user asks for the reader view appearance controls.
  */
+@Suppress("LongParameterList")
 @Composable
 fun ListenFeatureContent(
     shouldDisplayPlayer: Boolean,
-    state: State<ListenState>,
+    isListeningEnabled: Boolean,
+    uiState: ListenSheetUiState,
     articleProgressState: State<ArticleProgress>,
-    progressState: State<Float>,
+    scrollPosition: Flow<Float>,
     onAction: (ListenAction) -> Unit,
     onListenClicked: () -> Unit,
     onCustomizeReaderViewClicked: () -> Unit,
 ) {
+    val modifierWithPadding =
+        if (shouldDisplayPlayer) {
+            Modifier.padding(FirefoxTheme.layout.space.static300)
+        } else {
+            Modifier.padding(
+                horizontal = FirefoxTheme.layout.space.static200,
+                vertical = FirefoxTheme.layout.space.static300,
+            )
+        }
     Box(
-        modifier = Modifier.fillMaxWidth().padding(all = FirefoxTheme.layout.space.static200),
+        modifier = Modifier.fillMaxWidth().then(modifierWithPadding),
         contentAlignment = Alignment.BottomEnd,
     ) {
         if (shouldDisplayPlayer) {
-            ListenSheetContent(state, articleProgressState, progressState, onAction)
+            ListenSheetContent(uiState, articleProgressState, scrollPosition, onAction)
         } else {
             ReaderModePanel(
+                isListeningEnabled = isListeningEnabled,
                 onListenClicked = onListenClicked,
                 onCustomizeReaderViewClicked = onCustomizeReaderViewClicked,
             )
@@ -167,33 +208,44 @@ fun ListenFeatureContent(
 /** Shows media player controls for Listen To Page feature */
 @Composable
 private fun ListenSheetContent(
-    state: State<ListenState>,
+    uiState: ListenSheetUiState,
     articleProgressState: State<ArticleProgress>,
-    progressState: State<Float>,
+    scrollPosition: Flow<Float>,
     onAction: (ListenAction) -> Unit,
 ) {
-    val expanded by remember { mutableStateOf(true) }
+    val touchSlop = LocalViewConfiguration.current.touchSlop
+    val mode = uiState.mode
+    LaunchedEffect(scrollPosition, touchSlop, mode) {
+        // The flow replays the last known position, so the first new one is where the scroll is measured from.
+        val anchor = scrollPosition.take(2).last()
+        scrollPosition.drop(1).first { scrollY ->
+            val isArticleAtTop = scrollY <= touchSlop
+            when (mode) {
+                PlayerMode.Expanded -> !isArticleAtTop && abs(scrollY - anchor) > touchSlop
+                PlayerMode.Compact -> isArticleAtTop
+            }
+        }
+        onAction(ListenAction.ModeChanged(if (mode == PlayerMode.Expanded) PlayerMode.Compact else PlayerMode.Expanded))
+    }
 
-    val playback = state.value.playbackState
     val cardContentDescription = stringResource(R.string.reader_mode_panel_media_player_content_description)
     ListenSheet(
-        article = ArticleDetails(title = state.value.title, site = state.value.site, url = state.value.url),
-        elapsedTime = DateUtils.formatElapsedTime(articleProgressState.value.positionMs / MS_PER_SECOND),
-        totalTime = DateUtils.formatElapsedTime((articleProgressState.value.durationMs) / MS_PER_SECOND),
-        progressState = progressState,
-        playing = playback.phase == PlaybackPhase.Playing,
-        voiceState = state.value.voiceState,
+        article = uiState.article,
+        articleProgressState = articleProgressState,
+        playbackPhase = uiState.playbackPhase,
+        speed = uiState.speed,
+        voiceState = uiState.voiceState,
         onAction = onAction,
-        expanded = expanded,
+        onExpandClicked = { onAction(ListenAction.ModeChanged(PlayerMode.Expanded)) },
+        expanded = mode == PlayerMode.Expanded,
+        error = uiState.error,
         modifier =
             Modifier.fillMaxWidth()
-                .testTag(LISTEN_SHEET_TEST_TAG)
                 .semantics(
-                    mergeDescendants = false,
                     properties = {
                         contentDescription = cardContentDescription
                         isTraversalGroup = true
-                    },
+                    }
                 ),
     )
 }

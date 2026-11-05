@@ -16,6 +16,12 @@ names and values are the short, lower-case form, with underscores.
 A task's `kind` attribute gives the name of the kind that generated it, e.g.,
 `build` or `spidermonkey`.
 
+## task-from
+
+The path, relative to the topsrcdir, of the yml file the task was defined
+in: either one of the kind's `tasks-from` files, or the kind's own
+`kind.yml` if the task was defined inline there.
+
 ## run_on_repo_type
 
 The types of repositories where this task should be in the target task set. Typically
@@ -432,9 +438,9 @@ We enable build-signing for `shippable`, `nightly`, and `enable-build-signing` t
 
 ## target-store
 
-The Android app store a `push-android` task submits to: `google`, `samsung` or
-`huawei`. Together with `build-type` it identifies a push task, since several
-stores can be fed from the same signed build.
+The Android app store a `push-android` task submits to: `google`, `samsung`,
+`huawei` or `vivo`. Together with `build-type` it identifies a push task, since
+several stores can be fed from the same signed build.
 
 ## run-visual-metrics
 
@@ -584,10 +590,6 @@ Used by source tests to support chunking and specify a total amount of chunks.
 
 Used to generate several tasks from a task, using the substitution given in the
 matrix.
-
-## dxc-crash-symbols
-
-Indicates that the job produces crash symbols for `dxcompiler.dll`.
 
 ## flatpak_name
 

@@ -29,6 +29,12 @@ class BlocklistHandler(private val settings: Settings) {
         settings.homescreenBlocklist = updatedBlocklist
     }
 
+    /** Remove an URL from the blocklist. The URL will be stripped and hashed, so no pre-formatted is required. */
+    fun removeUrlFromBlocklist(url: String) {
+        val updatedBlocklist = settings.homescreenBlocklist - url.stripAndHash()
+        settings.homescreenBlocklist = updatedBlocklist
+    }
+
     /** Filter a list of recent bookmarks by the blocklist. Requires this class to be contextually in a scope. */
     @JvmName("filterRecentBookmark")
     fun List<Bookmark>.filteredByBlocklist(): List<Bookmark> =
@@ -141,3 +147,7 @@ private fun String.stripProtocolAndCommonSubdomains(): String {
     }
     return stripped
 }
+
+/** Whether this URL and [url] are the same entry in the blocklist. */
+internal fun String.hasSameBlocklistEntryAs(url: String): Boolean =
+    stripProtocolAndCommonSubdomains() == url.stripProtocolAndCommonSubdomains()

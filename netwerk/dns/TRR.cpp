@@ -4,6 +4,8 @@
 
 #include "TRR.h"
 
+#include <memory>
+
 #include "DNS.h"
 #include "DNSUtils.h"
 #include "ObliviousHttpChannel.h"
@@ -17,7 +19,6 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tokenizer.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
@@ -60,17 +61,25 @@ TRR::GetPriority(uint32_t* aPriority) {
   return NS_OK;
 }
 
+// static
+already_AddRefed<nsIEventTarget> TRR::DefaultTarget() {
+  if (!TRRService::Get()) {
+    return nullptr;
+  }
+  return TRRService::Get()->MainThreadOrTRRTarget();
+}
+
 // when firing off a normal A or AAAA query
 TRR::TRR(AHostResolver* aResolver, nsHostRecord* aRec, enum TrrType aType)
     : mozilla::Runnable("TRR"),
       mRec(aRec),
       mHostResolver(aResolver),
       mType(aType),
-      mOriginSuffix(aRec->originSuffix) {
+      mOriginSuffix(aRec->originSuffix),
+      mTarget(DefaultTarget()) {
   mHost = aRec->host;
   mPB = aRec->pb;
-  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess() || XRE_IsSocketProcess(),
-                        "TRR must be in parent or socket process");
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(), "TRR must be in parent process");
 }
 
 // when following CNAMEs
@@ -83,14 +92,15 @@ TRR::TRR(AHostResolver* aResolver, nsHostRecord* aRec, nsCString& aHost,
       mType(aType),
       mPB(aPB),
       mCnameLoop(aLoopCount),
-      mOriginSuffix(aRec ? aRec->originSuffix : ""_ns) {
-  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess() || XRE_IsSocketProcess(),
-                        "TRR must be in parent or socket process");
+      mOriginSuffix(aRec ? aRec->originSuffix : ""_ns),
+      mTarget(DefaultTarget()) {
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(), "TRR must be in parent process");
 }
 
 // to verify a domain
 TRR::TRR(AHostResolver* aResolver, nsACString& aHost, enum TrrType aType,
-         const nsACString& aOriginSuffix, bool aPB, bool aUseFreshConnection)
+         const nsACString& aOriginSuffix, bool aPB, bool aUseFreshConnection,
+         nsIEventTarget* aTarget)
     : mozilla::Runnable("TRR"),
       mHost(aHost),
       mRec(nullptr),
@@ -98,9 +108,9 @@ TRR::TRR(AHostResolver* aResolver, nsACString& aHost, enum TrrType aType,
       mType(aType),
       mPB(aPB),
       mOriginSuffix(aOriginSuffix),
-      mUseFreshConnection(aUseFreshConnection) {
-  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess() || XRE_IsSocketProcess(),
-                        "TRR must be in parent or socket process");
+      mUseFreshConnection(aUseFreshConnection),
+      mTarget(aTarget) {
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(), "TRR must be in parent process");
 }
 
 void TRR::HandleTimeout() {
@@ -122,9 +132,8 @@ TRR::Notify(nsITimer* aTimer) {
 
 NS_IMETHODIMP
 TRR::Run() {
-  MOZ_ASSERT_IF(XRE_IsParentProcess() && TRRService::Get(),
+  MOZ_ASSERT_IF(TRRService::Get(),
                 NS_IsMainThread() || TRRService::Get()->IsOnTRRThread());
-  MOZ_ASSERT_IF(XRE_IsSocketProcess(), NS_IsMainThread());
 
   if ((TRRService::Get() == nullptr) || NS_FAILED(SendHTTPRequest())) {
     RecordReason(TRRSkippedReason::TRR_SEND_FAILED);
@@ -136,7 +145,7 @@ TRR::Run() {
 
 DNSPacket* TRR::GetOrCreateDNSPacket() {
   if (!mPacket) {
-    mPacket = MakeUnique<DNSPacket>();
+    mPacket = std::make_unique<DNSPacket>();
   }
 
   return mPacket.get();
@@ -971,35 +980,13 @@ TRR::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
 }
 
 void TRR::Cancel(nsresult aStatus) {
-  bool isTRRServiceChannel = false;
-  nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal(
-      do_QueryInterface(mChannel));
-  if (httpChannelInternal) {
-    nsresult rv =
-        httpChannelInternal->GetIsTRRServiceChannel(&isTRRServiceChannel);
-    if (NS_FAILED(rv)) {
-      isTRRServiceChannel = false;
-    }
-  }
-  // nsHttpChannel can be only canceled on the main thread.
-  RefPtr<nsHttpChannel> httpChannel = do_QueryObject(mChannel);
-  if (isTRRServiceChannel && !XRE_IsSocketProcess() && !httpChannel) {
-    if (TRRService::Get()) {
-      nsCOMPtr<nsIThread> thread = TRRService::Get()->TRRThread();
-      if (thread && !thread->IsOnCurrentThread()) {
-        thread->Dispatch(NS_NewRunnableFunction(
-            "TRR::Cancel",
-            [self = RefPtr(this), aStatus]() { self->Cancel(aStatus); }));
-        return;
-      }
-    }
-  } else {
-    if (!NS_IsMainThread()) {
-      NS_DispatchToMainThread(NS_NewRunnableFunction(
-          "TRR::Cancel",
-          [self = RefPtr(this), aStatus]() { self->Cancel(aStatus); }));
-      return;
-    }
+  // mChannel is only accessed on mTarget, so it must not be touched before we
+  // get there.
+  if (mTarget && !mTarget->IsOnCurrentThread()) {
+    mTarget->Dispatch(NS_NewRunnableFunction(
+        "TRR::Cancel",
+        [self = RefPtr(this), aStatus]() { self->Cancel(aStatus); }));
+    return;
   }
 
   if (mCancelled) {

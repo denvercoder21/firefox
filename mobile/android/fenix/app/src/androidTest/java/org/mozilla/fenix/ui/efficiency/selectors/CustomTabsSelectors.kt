@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.ui.efficiency.selectors
 
+import mozilla.components.compose.browser.toolbar.R as composeBrowserToolbarR
+import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags.ADDRESSBAR_URL_BOX
 import mozilla.components.feature.customtabs.R as customtabsR
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
@@ -82,15 +84,15 @@ object CustomTabsSelectors : SelectorContainer {
 
     val MENU_OPEN_IN_APP =
         Selector(
-            strategy = SelectorStrategy.UIAUTOMATOR_WITH_DESCRIPTION_CONTAINS,
-            value = "Open in $appName",
+            strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+            value = getStringResource(R.string.browser_menu_open_in_fenix, appName),
             description = "Custom tab menu: Open in app",
             groups = setOf(Group.CUSTOM_TAB_MAIN_MENU_ITEMS),
         )
 
     val MENU_FIND_IN_PAGE =
         Selector(
-            strategy = SelectorStrategy.UIAUTOMATOR_WITH_DESCRIPTION_CONTAINS,
+            strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
             value = getStringResource(R.string.browser_menu_find_in_page),
             description = "Custom tab menu: Find in page",
             groups = setOf(Group.CUSTOM_TAB_MAIN_MENU_ITEMS),
@@ -98,7 +100,7 @@ object CustomTabsSelectors : SelectorContainer {
 
     val MENU_DESKTOP_SITE =
         Selector(
-            strategy = SelectorStrategy.UIAUTOMATOR_WITH_DESCRIPTION_CONTAINS,
+            strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
             value = getStringResource(R.string.browser_menu_desktop_site),
             description = "Custom tab menu: Desktop site",
             groups = setOf(Group.CUSTOM_TAB_MAIN_MENU_ITEMS),
@@ -141,5 +143,24 @@ object CustomTabsSelectors : SelectorContainer {
             value = url,
             description = "Custom tab toolbar URL '$url'",
             groups = setOf(Group.CUSTOM_TAB_TOOLBAR),
+        )
+
+    // The toolbar URL box itself (Compose). Long-pressing it raises the copy/paste contextual menu. Matched
+    // on the first node of the tag, mirroring the legacy robot's onAllNodes(hasTestTag(...)).onFirst().
+    val TOOLBAR_URL_BOX =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_ON_ALL_NODES_BY_TAG_ON_FIRST,
+            value = ADDRESSBAR_URL_BOX,
+            description = "Custom tab toolbar URL box",
+            groups = setOf(Group.CUSTOM_TAB_TOOLBAR),
+        )
+
+    // "Copy" on the toolbar URL long-press contextual menu (Compose). Keyed off the string resource so it
+    // survives localization; the legacy robot hardcoded the English "Copy".
+    val LONG_PRESS_COPY =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_TEXT,
+            value = getStringResource(composeBrowserToolbarR.string.mozac_browser_toolbar_long_press_popup_copy),
+            description = "Custom tab toolbar long-press menu: Copy",
         )
 }

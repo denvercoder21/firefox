@@ -4,6 +4,9 @@
 
 #include "nsMacUtilsImpl.h"
 
+#include <sys/param.h>
+
+#include "CFTypeRefPtr.h"
 #include "base/command_line.h"
 #include "base/process_util.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -313,6 +316,45 @@ static nsresult GetStringValueFromBundlePlist(const nsAString& aKey,
   return NS_OK;
 }
 
+nsresult nsMacUtilsImpl::GetExecutablePathFromBundle(
+    const nsCString& aBundlePath, nsACString& aExecutablePath) {
+  auto bundlePathRef =
+      CFTypeRefPtr<CFStringRef>::WrapUnderCreateRule(CFStringCreateWithCString(
+          kCFAllocatorDefault, aBundlePath.get(), kCFStringEncodingUTF8));
+  if (!bundlePathRef) {
+    return NS_ERROR_FAILURE;
+  }
+
+  auto bundleURL = CFTypeRefPtr<CFURLRef>::WrapUnderCreateRule(
+      CFURLCreateWithFileSystemPath(kCFAllocatorDefault, bundlePathRef.get(),
+                                    kCFURLPOSIXPathStyle, true));
+  if (!bundleURL) {
+    return NS_ERROR_FAILURE;
+  }
+
+  auto bundle = CFTypeRefPtr<CFBundleRef>::WrapUnderCreateRule(
+      CFBundleCreate(kCFAllocatorDefault, bundleURL.get()));
+  if (!bundle) {
+    return NS_ERROR_FAILURE;
+  }
+
+  auto executableURL = CFTypeRefPtr<CFURLRef>::WrapUnderCreateRule(
+      CFBundleCopyExecutableURL(bundle.get()));
+  if (!executableURL) {
+    return NS_ERROR_FAILURE;
+  }
+
+  char pathBuffer[MAXPATHLEN];
+  if (!CFURLGetFileSystemRepresentation(executableURL.get(), true,
+                                        reinterpret_cast<UInt8*>(pathBuffer),
+                                        sizeof(pathBuffer))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  aExecutablePath.Assign(pathBuffer);
+  return NS_OK;
+}
+
 /*
  * Helper function for reading a path string from the .app's Info.plist
  * and returning a directory object for that path with symlinks resolved.
@@ -552,7 +594,7 @@ std::string CFStringToStdString(CFStringRef aString) {
   CFIndex length = CFStringGetLength(aString);
   CFIndex maxSize =
       CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
-  mozilla::UniquePtr<char[]> buffer = mozilla::MakeUnique<char[]>(maxSize);
+  auto buffer = std::make_unique<char[]>(maxSize);
   if (!buffer) {
     return std::string();
   }

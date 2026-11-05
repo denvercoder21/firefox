@@ -898,6 +898,7 @@ class XPCShellTestThread(Thread):
                     if line.get("action") == "test_status" and "expected" in line:
                         # Ensure the 'expected' field matches the 'status' to avoid failing the job
                         line["expected"] = line.get("status")
+                        line.setdefault("extra", {})["will_retry"] = True
                     elif line.get("action") == "log" and line.get("level") == "ERROR":
                         # Convert ERROR log to test_status so it gets colored
                         # properly without causing a test failure.
@@ -1129,7 +1130,10 @@ class XPCShellTestThread(Thread):
                     root += "_retry"
                 filename = f"profile_{root}{ext}.json"
                 i = 2
-                while os.path.exists(os.path.join(upload_dir, filename)):
+                while any(
+                    os.path.exists(os.path.join(upload_dir, checked_filename))
+                    for checked_filename in (filename, filename + ".gz")
+                ):
                     filename = f"profile_{root}-{i}{ext}.json"
                     i += 1
                 self.timeout_profile_name = filename
@@ -1663,11 +1667,6 @@ class XPCShellTests:
         if os.getenv("MOZ_FETCHES_DIR", None):
             self.env["MOZ_FETCHES_DIR"] = os.getenv("MOZ_FETCHES_DIR", None)
 
-        if self.mozInfo.get("socketprocess_networking"):
-            self.env["MOZ_FORCE_USE_SOCKET_PROCESS"] = "1"
-        else:
-            self.env["MOZ_DISABLE_SOCKET_PROCESS"] = "1"
-
         # Self-tests run many sub-processes whose tests fail on purpose, so
         # profiling them only wastes overhead and uploads useless artifacts.
         # Strip any startup-profiling request inherited from the environment
@@ -1947,10 +1946,6 @@ class XPCShellTests:
         self.mozInfo["sessionHistoryInParent"] = True
 
         self.mozInfo["verify"] = options.get("verify", False)
-
-        self.mozInfo["socketprocess_networking"] = prefs.get(
-            "network.http.network_access_on_socket_process.enabled", False
-        )
 
         self.mozInfo["inc_origin_init"] = (
             os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1"
@@ -2896,7 +2891,7 @@ def main():
     result = xpcsh.runTests(options)
 
     if "MOZ_AUTOMATION" in os.environ:
-        symbolicate_profiles()
+        symbolicate_profiles(symbol_dir=options.symbolsPath)
 
     if result == TBPL_RETRY:
         sys.exit(4)

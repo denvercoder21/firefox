@@ -12,6 +12,7 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/Utf8.h"  // mozilla::ConvertUtf16ToUtf8
 
+#include <iterator>
 #include <string.h>
 
 #include "vm/JSContext-inl.h"
@@ -26,10 +27,12 @@
 #include "jstypes.h"
 
 #include "builtin/RegExp.h"  // js::RegExpSearcherLastLimitSentinel
+#include "builtin/TestingFunctions.h"
 #ifdef MOZ_EXECUTION_TRACING
 #  include "debugger/ExecutionTracer.h"
 #endif
 #include "frontend/FrontendContext.h"
+#include "gc/AtomMarking.h"
 #include "gc/GC.h"
 #include "gc/PublicIterators.h"  // js::RealmsIter
 #include "irregexp/RegExpAPI.h"
@@ -967,6 +970,7 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> InternalJobQueue::saveJobQueue(
 // embedder enqueued (typically a Private value) which the GC cannot follow, so
 // it is handed to the JobQueue hook instead.
 void JS::MicroTask::trace(JSTracer* trc, const char* name) {
+  TraceRootRange(trc, std::size(extra_), extra_, name);
   if (value_.isGCThing()) {
     TraceRoot(trc, &value_, name);
     return;
@@ -978,6 +982,10 @@ void JS::MicroTask::trace(JSTracer* trc, const char* name) {
     queue->traceNonGCThingMicroTask(trc, &value_);
   }
 }
+
+static_assert(sizeof(JS::MicroTask) == 7 * sizeof(JS::Value),
+              "MicroTasks are held by value in several queues; keep them "
+              "compact");
 
 void js::MicroTaskQueueElement::trace(JSTracer* trc) {
   microTask_.trace(trc, "microtask-queue-entry");
@@ -1227,7 +1235,8 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       bypassCSPForDebugger(this, false),
       hasDebuggerForcedLexicalInit(this, false),
       insideExclusiveDebuggerOnEval(this, nullptr),
-      microTaskQueues(this) {
+      microTaskQueues(this),
+      testingFunctionData_(this) {
   MOZ_ASSERT(static_cast<JS::RootingContext*>(this) ==
              JS::RootingContext::get(this));
 
@@ -1271,6 +1280,17 @@ JSContext::~JSContext() {
   }
 
   TlsContext.set(nullptr);
+}
+
+TestingFunctionData* JSContext::getOrCreateTestingFunctionData() {
+  if (!testingFunctionData_.ref()) {
+    testingFunctionData_ = MakeUnique<TestingFunctionData>();
+    if (!testingFunctionData_.ref()) {
+      ReportOutOfMemory(this);
+      return nullptr;
+    }
+  }
+  return testingFunctionData_.ref().get();
 }
 
 void JSContext::unsetOOMStackTrace() { oomStackTraceBufferValid_ = false; }
@@ -1431,12 +1451,10 @@ SavedFrame* JSContext::getPendingExceptionStack() {
   return unwrappedExceptionStack();
 }
 
-#ifdef DEBUG
 const JS::Value& JSContext::getPendingExceptionUnwrapped() {
   MOZ_ASSERT(isExceptionPending());
   return unwrappedException();
 }
-#endif
 
 bool JSContext::isThrowingDebuggeeWouldRun() {
   return isExceptionPending() && unwrappedException().isObject() &&
@@ -1562,6 +1580,71 @@ JSScript* JSContext::currentScript(jsbytecode** ppc,
   return script;
 }
 
+void JSContext::recordRef(JSAtom* atom) {
+  atomReferences().recordRef(this, atom);
+}
+
+bool JSContext::wrapOrRecordRefToId(JS::MutableHandle<jsid> id) {
+  if (id.isAtom()) {
+    atomReferences().recordRef(this, id.toAtom());
+    return true;
+  }
+
+  if (id.isSymbol()) {
+    Rooted<JS::Symbol*> symbol(this, id.toSymbol());
+    if (!wrapOrRecordRef(&symbol)) {
+      return false;
+    }
+
+    id.set(jsid::Symbol(symbol));
+    return true;
+  }
+
+  MOZ_ASSERT(!id.isGCThing());
+  return true;
+}
+
+bool JSContext::wrapOrRecordRefToValue(JS::MutableHandle<JS::Value> value) {
+  if (value.isString()) {
+    if (value.toString()->isAtom()) {
+      atomReferences().recordRef(this, &value.toString()->asAtom());
+    }
+    return true;
+  }
+
+  if (value.isSymbol()) {
+    Rooted<JS::Symbol*> symbol(this, value.toSymbol());
+    if (!wrapOrRecordRef(&symbol)) {
+      return false;
+    }
+
+    value.setSymbol(symbol);
+    return true;
+  }
+
+  MOZ_ASSERT(!value.isGCThing());
+  return true;
+}
+
+bool JSContext::wrapOrRecordRef(JS::MutableHandle<JS::Symbol*> symbol) {
+  MOZ_ASSERT_IF(!symbol->isUnique(), symbol->isShared());
+
+  if (!symbol->isUnique()) {
+    MOZ_ASSERT(symbol->isShared());
+    atomReferences().recordRef(this, symbol.get());
+    return true;
+  }
+
+  if (symbol->zone() == zone()) {
+    return true;
+  }
+
+  // Unwrap and re-wrap into current zone.
+  symbol.set(UnwrapSymbol(symbol));
+  symbol.set(JS::Symbol::wrap(this, symbol));
+  return bool(symbol);
+}
+
 #ifdef JS_CRASH_DIAGNOSTICS
 void ContextChecks::check(AbstractFramePtr frame, int argIndex) {
   if (frame) {
@@ -1671,11 +1754,14 @@ void JSContext::suspendExecutionTracing() {
 #ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
 
 AutoUnsafeCallWithABI::AutoUnsafeCallWithABI(UnsafeABIStrictness strictness)
-    : cx_(TlsContext.get()),
+    // TlsContext isn't initialized when using the frontend-only API
+    // (JS_FrontendOnlyInit), for example when constant folding calls NumberDiv.
+    : cx_(TlsContext.initialized() ? TlsContext.get() : nullptr),
       nested_(cx_ ? cx_->hasAutoUnsafeCallWithABI : false),
       nogc(cx_) {
   if (!cx_) {
-    // This is a helper thread doing Ion or Wasm compilation - nothing to do.
+    // This is a helper thread doing Ion or Wasm compilation, or frontend-only
+    // code without a JSContext - nothing to do.
     return;
   }
   switch (strictness) {

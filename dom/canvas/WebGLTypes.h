@@ -34,6 +34,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "nsString.h"
@@ -102,7 +103,6 @@ class TexUnpackSurface;
 }  // namespace webgl
 
 class ClientWebGLContext;
-struct WebGLTexPboOffset;
 class WebGLTexture;
 class WebGLBuffer;
 class WebGLFramebuffer;
@@ -209,6 +209,7 @@ enum class WebGLTexDimensions : uint8_t { Tex2D, Tex3D };
 enum class WebGLExtensionID : uint8_t {
   ANGLE_instanced_arrays,
   EXT_blend_minmax,
+  EXT_clip_control,
   EXT_color_buffer_float,
   EXT_color_buffer_half_float,
   EXT_depth_clamp,
@@ -221,6 +222,7 @@ enum class WebGLExtensionID : uint8_t {
   EXT_texture_compression_bptc,
   EXT_texture_compression_rgtc,
   EXT_texture_filter_anisotropic,
+  EXT_texture_mirror_clamp_to_edge,
   EXT_texture_norm16,
   MOZ_debug,
   OES_draw_buffers_indexed,
@@ -613,15 +615,6 @@ enum class ContextLossReason : uint8_t {
   Guilty,
 };
 
-inline bool ReadContextLossReason(const uint8_t val,
-                                  ContextLossReason* const out) {
-  if (val > static_cast<uint8_t>(ContextLossReason::Guilty)) {
-    return false;
-  }
-  *out = static_cast<ContextLossReason>(val);
-  return true;
-}
-
 // -
 
 struct InitContextDesc final {
@@ -639,6 +632,9 @@ struct InitContextDesc final {
 };
 
 constexpr uint32_t kMaxTransformFeedbackSeparateAttribs = 4;
+
+// This matches ANGLE's IMPLEMENTATION_MAX_UNIFORM_BLOCK_SIZE.
+constexpr uint32_t kMaxUniformBlockSize = 64 * 1024;
 
 struct Limits final {
   ExtensionBits supportedExtensions;
@@ -660,7 +656,7 @@ struct Limits final {
 
   // Exts
   bool astcHdr = false;
-  std::array<uint8_t, 3> _padding;
+  std::array<uint8_t, 3> _padding = {};
   uint32_t maxColorDrawBuffers = 1;
   uint32_t maxMultiviewLayers = 0;
   uint64_t queryCounterBitsTimeElapsed = 0;
@@ -904,7 +900,7 @@ struct GetUniformData final {
 struct FrontBufferSnapshotIpc final {
   uvec2 surfSize = {};
   size_t byteStride = 0;
-  Maybe<mozilla::ipc::Shmem> shmem = {};
+  mozilla::ipc::MutableSharedMemoryHandle shmem;
 };
 
 struct ReadPixelsResult {

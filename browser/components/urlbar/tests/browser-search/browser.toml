@@ -11,9 +11,6 @@ prefs = [
 ]
 
 ["browser_action_searchengine.js"]
-skip-if = [
-  "os == 'win' && asan", # Bug 1834810
-]
 
 ["browser_action_searchengine_alias.js"]
 
@@ -105,6 +102,10 @@ support-files = [
 ]
 
 ["browser_oneOffs_settings.js"]
+
+["browser_partnerCode_smartbar.js"]
+
+["browser_partnerCode_urlbar.js"]
 
 ["browser_placeholder.js"]
 support-files = [

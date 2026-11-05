@@ -82,6 +82,12 @@ class WebProgressListener final : public nsIWebProgressListener,
       rv.ThrowInvalidStateError("Unable to open window");
       mPromise->Reject(rv, __func__);
       mPromise = nullptr;
+      if (browsingContext) {
+        if (nsCOMPtr<nsIWebProgress> webProgress =
+                browsingContext->GetWebProgress()) {
+          (void)webProgress->RemoveProgressListener(this);
+        }
+      }
       return NS_OK;
     }
 
@@ -396,7 +402,8 @@ void GeckoViewOpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
   // passes the request to open a new window to GeckoView. Allowing the
   // application to decide how to hand the open window request.
   nsCOMPtr<nsIGeckoViewServiceWorker> sw = do_ImportESModule(
-      "resource://gre/modules/GeckoViewServiceWorker.sys.mjs");
+      "moz-src:///mobile/shared/components/geckoview/"
+      "GeckoViewServiceWorker.sys.mjs");
   MOZ_ASSERT(sw);
 
   RefPtr<dom::Promise> promise;

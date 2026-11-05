@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/// <reference path="./moz-input-text.tagmap.d.ts" />
+
 import { html, ifDefined } from "../vendor/lit.all.mjs";
 import { MozBaseInputElement } from "../lit-utils.mjs";
 
@@ -19,15 +21,17 @@ import { MozBaseInputElement } from "../lit-utils.mjs";
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {string} placeholder - Text to display when the input has no value.
+ * @property {number} maxLength - The maximum number of characters the input accepts.
  * @property {string} ariaLabel - The aria-label text when there is no visible label.
  * @property {string} ariaDescription - The aria-description text when there is no visible description.
  * @property {string} title - The title attribute, mapped onto the inner input.
  */
-export default class MozInputText extends MozBaseInputElement {
+export class MozInputText extends MozBaseInputElement {
   static properties = {
     placeholder: { type: String, fluent: true },
     readonly: { type: Boolean, reflect: true },
     required: { type: Boolean, reflect: true },
+    maxLength: { type: Number },
   };
   static inputLayout = "block";
 
@@ -65,6 +69,7 @@ export default class MozInputText extends MozBaseInputElement {
         ?required=${this.required}
         accesskey=${ifDefined(this.accessKey)}
         placeholder=${ifDefined(this.placeholder)}
+        maxlength=${ifDefined(this.maxLength)}
         aria-label=${ifDefined(this.ariaLabel ?? undefined)}
         aria-describedby="description"
         aria-description=${ifDefined(

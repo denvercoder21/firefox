@@ -129,6 +129,15 @@ export class ChatConversation extends Conversation {
   lastSubmitType = null;
 
   /**
+   * Transient (not persisted): where the most recent user submission asked
+   * for an AI Tab page from (tab_list, tab_group or fxms), or null when it
+   * was typed in the chat. Reported by AI Tab telemetry.
+   *
+   * @type {?string}
+   */
+  aitabSource = null;
+
+  /**
    * Transient (not persisted): browser_action_submit telemetry context for
    * manage_tabs confirmation, keyed by toolCallId. Stashed when a tab action
    * is deferred for user confirmation and consumed when it resolves.
@@ -471,7 +480,7 @@ export class ChatConversation extends Conversation {
         return false;
       }
       // Keep localized messages (rendered from l10n id)
-      if (type === "text" && !body && !content?.l10nId) {
+      if (type === "text" && !body && !content?.l10nId && !message.toolUIData) {
         return false;
       }
       return true;
@@ -528,6 +537,28 @@ export class ChatConversation extends Conversation {
   }
 
   /**
+   * Finds a pending confirmation in the trailing batch of tool messages.
+   *
+   * @param {string} toolCallId - The tool call to look up.
+   * @returns {ChatMessage|undefined} The pending confirmation, if found.
+   */
+  getPendingToolConfirmation(toolCallId) {
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      const message = this.messages[i];
+      if (message.role !== MESSAGE_ROLE.TOOL) {
+        break;
+      }
+      if (
+        message.content?.tool_call_id === toolCallId &&
+        message.content?.body?.pending
+      ) {
+        return message;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Resolves the pending tool-confirmation message for UI actions.
    * Called by ToolUI when the user confirms or cancels via the UI.
    *
@@ -536,14 +567,9 @@ export class ChatConversation extends Conversation {
    * @returns {boolean} True if a pending message was resolved.
    */
   resolvePendingToolConfirmation(outcomeBody, toolCallId) {
-    const message = this.messages.at(-1);
+    const message = this.getPendingToolConfirmation(toolCallId);
 
-    const isResolvableToolMessage =
-      message?.role === MESSAGE_ROLE.TOOL &&
-      message.content?.tool_call_id === toolCallId &&
-      message.content?.body?.pending;
-
-    if (!isResolvableToolMessage) {
+    if (!message) {
       return false;
     }
 
@@ -962,9 +988,11 @@ export class ChatConversation extends Conversation {
    * @returns {URL|null}
    */
   getMostRecentPageVisited() {
-    const sites = this.getSitesList();
+    const message = this.messages.findLast(m =>
+      m.pageUrl?.protocol.startsWith("http")
+    );
 
-    return sites.length ? sites.pop() : null;
+    return message?.pageUrl ?? null;
   }
 
   /**
@@ -1099,7 +1127,7 @@ export class ChatConversation extends Conversation {
    * Updates the tool UI data for a message with a new UI state
    *
    * @param {ChatMessage} message - The message to update
-   * @param {object} data - The update data containing updateData
+   * @param {object} data - The update data containing properties or updateData
    * @param {string|null} nextUI - The next UI state to transition to, or null to clear
    */
   async updateToolUI(message, data, nextUI) {
@@ -1114,6 +1142,7 @@ export class ChatConversation extends Conversation {
       uiType: nextUI,
       properties: {
         ...message.toolUIData.properties,
+        ...data?.properties,
       },
     };
 
@@ -1132,9 +1161,11 @@ export class ChatConversation extends Conversation {
    *
    * @param {string} toolCallId - The ID of the tool call
    * @param {object} uiData - The UI data to attach to the message
+   * @param {object} [options]
+   * @param {boolean} [options.emitComplete=true] - Whether to mark the message complete
    * @returns {object} Result object with success status and message
    */
-  addUIToolToCurrentMessage(toolCallId, uiData) {
+  addUIToolToCurrentMessage(toolCallId, uiData, { emitComplete = true } = {}) {
     const enrichedUIData = { ...uiData };
 
     // Get the last assistant text message to attach UI to
@@ -1206,7 +1237,9 @@ export class ChatConversation extends Conversation {
 
     // Re-emit complete event since the message was already marked complete before tool execution
     // This forces the UI to re-render with the new toolUIData
-    this.emit("chat-conversation:message-complete", currentMessage);
+    if (emitComplete) {
+      this.emit("chat-conversation:message-complete", currentMessage);
+    }
 
     return {
       success: true,

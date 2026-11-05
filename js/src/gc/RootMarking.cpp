@@ -250,6 +250,10 @@ void js::gc::GCRuntime::traceIncomingCrossCompartmentEdgesForZoneGC(
     for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
       c->traceWrapperTargetsInCollectedZones(trc, whichEdges);
     }
+
+    if (atomsZone()->isGCMarking()) {
+      zone->traceIncomingSymbolEdgesForZoneGC(trc, whichEdges);
+    }
   }
 
   // Currently we trace all debugger edges as black.
@@ -352,6 +356,10 @@ void js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc,
   if (!JS::RuntimeHeapIsMinorCollecting()) {
     // Trace the self-hosting stencil. The contents of this are always tenured.
     rt->traceSelfHostingStencil(trc);
+
+    // Trace JitCode kept alive by BaselineFrames with pending returns into
+    // BaselineScripts recompiled by BaselineDebugModeOSR.
+    jit::JitRuntime::TraceDebugModeOSRReturnSites(trc);
 
     for (ZonesIter zone(this, ZoneSelector::SkipAtoms); !zone.done();
          zone.next()) {

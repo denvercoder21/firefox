@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const STATE_CHOOSE = "choose";
+
 do_get_profile();
 
 const { ChatConversation, MESSAGE_ROLE, ChatMessage } =
@@ -485,6 +487,19 @@ add_task(function test_ChatConversation_getMostRecentPageVisited() {
   Assert.equal(mostRecentPageVisited, "https://www.espn.com/");
 });
 
+add_task(function test_revisited_ChatConversation_getMostRecentPageVisited() {
+  const conversation = new ChatConversation({});
+
+  const content = "user to assistant msg";
+  conversation.addUserMessage(content, new URL("https://www.mozilla.com"));
+  conversation.addUserMessage(content, new URL("https://www.firefox.com"));
+  conversation.addUserMessage(content, new URL("https://www.mozilla.com"));
+  conversation.addUserMessage(content, new URL("about:aiwindow"));
+
+  const mostRecentPageVisited = conversation.getMostRecentPageVisited();
+  Assert.equal(mostRecentPageVisited, "https://www.mozilla.com/");
+});
+
 add_task(function test_noBrowsing_ChatConversation_getMostRecentPageVisited() {
   const conversation = new ChatConversation({});
 
@@ -753,6 +768,7 @@ add_task(
             feature: "browser-context",
             module: "tab",
             model: "generic",
+            version: "1.0",
             prompts: "TAB: {title} ({url})",
           },
         ]),
@@ -803,6 +819,7 @@ add_task(async function test_injectRealTimeContext_dedupes_when_unchanged() {
           feature: "browser-context",
           module: "tab",
           model: "generic",
+          version: "1.0",
           prompts: "TAB: {title} ({url})",
         },
       ]),
@@ -879,6 +896,19 @@ add_task(function test_ChatConversation_renderState_filters_phantom_messages() {
   Assert.equal(renderState[0].role, MESSAGE_ROLE.USER);
   Assert.equal(renderState[1].role, MESSAGE_ROLE.ASSISTANT);
   Assert.equal(renderState[1].content.body, "Here is the weather forecast.");
+});
+
+add_task(function test_renderState_includes_empty_message_with_tool_ui() {
+  const conversation = new ChatConversation({});
+  conversation.addUserMessage("Create a page", null);
+  const message = conversation.addAssistantMessage("text", "");
+  conversation.addUIToolToCurrentMessage(
+    "aitab-call",
+    { uiType: "aitab", properties: { state: STATE_CHOOSE } },
+    { emitComplete: false }
+  );
+
+  Assert.ok(conversation.renderState().includes(message));
 });
 
 add_task(
@@ -1988,6 +2018,26 @@ add_task(function test_addUIToolToCurrentMessage_emits_events() {
 
   Assert.ok(updateEventFired, "Update event should be emitted");
   Assert.ok(completeEventFired, "Complete event should be re-emitted");
+});
+
+add_task(function test_addUIToolToCurrentMessage_can_defer_completion() {
+  const conversation = new ChatConversation({});
+  conversation.addUserMessage("Create a page", null);
+  conversation.addAssistantMessage("text", "");
+
+  let updates = 0;
+  let completions = 0;
+  conversation.on("chat-conversation:message-update", () => updates++);
+  conversation.on("chat-conversation:message-complete", () => completions++);
+
+  conversation.addUIToolToCurrentMessage(
+    "aitab-call",
+    { uiType: "aitab", properties: { state: STATE_CHOOSE } },
+    { emitComplete: false }
+  );
+
+  Assert.equal(updates, 1);
+  Assert.equal(completions, 0);
 });
 
 add_task(async function test_addUserMessage_dismisses_prior_undo() {

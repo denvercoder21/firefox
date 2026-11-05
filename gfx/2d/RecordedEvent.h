@@ -109,7 +109,7 @@ class Translator {
   }
   virtual already_AddRefed<SourceSurface>
   LookupSourceSurfaceFromSurfaceDescriptor(
-      const layers::SurfaceDescriptor& aDesc) {
+      DrawTarget* aDT, const layers::SurfaceDescriptor& aDesc) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
   }
@@ -532,7 +532,7 @@ class RecordedEventArray {
 
   void Assign(const T* aData, Z aSize) {
     mSize = aSize;
-    mData = MakeUnique<T[]>(aSize);
+    mData = std::make_unique<T[]>(aSize);
     PodCopy(mData.get(), aData, aSize);
   }
 

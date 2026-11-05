@@ -81,6 +81,7 @@
 #include "nsCOMPtr.h"
 #include "nsComboboxControlFrame.h"
 #include "nsCommandParams.h"
+#include "nsComputedDOMStyle.h"
 #include "nsContentAreaDragDrop.h"
 #include "nsContentUtils.h"
 #include "nsCopySupport.h"
@@ -643,6 +644,8 @@ EventStateManager* EventStateManager::sActiveESM = nullptr;
 EventStateManager* EventStateManager::sCursorSettingManager = nullptr;
 constinit AutoWeakFrame EventStateManager::sLastDragOverFrame{};
 LayoutDeviceIntPoint EventStateManager::sPreLockScreenPoint = kInvalidRefPoint;
+Maybe<CSSIntPoint> EventStateManager::sLastRealScreenPoint;
+bool EventStateManager::sRestorePointerAfterUnlock = false;
 LayoutDeviceIntPoint EventStateManager::sLastRefPoint = kInvalidRefPoint;
 LayoutDeviceIntPoint EventStateManager::sLastRefPointOfRawUpdate =
     kInvalidRefPoint;
@@ -1077,6 +1080,9 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
             .extract());
     sLastClientPoint = RoundedToInt(Event::GetClientCoords(
         aPresContext, aEvent, aEvent->mRefPoint, CSSDoublePoint{0, 0}));
+    if (!aEvent->mFlags.mIsSynthesizedForTests) {
+      sLastRealScreenPoint = Some(sLastScreenPoint);
+    }
   }
 
   *aStatus = nsEventStatus_eIgnore;
@@ -1830,11 +1836,12 @@ static bool IsAccessKeyTarget(Element* aElement, nsAString& aKey) {
     return false;
   }
 
-  if (!aElement->IsXULElement()) {
+  if (!aElement->IsXULElement() &&
+      !nsContentUtils::IsChromeDoc(aElement->OwnerDoc())) {
     return true;
   }
 
-  // For XUL we do visibility checks.
+  // For XUL and chrome docs we do visibility checks.
   nsIFrame* frame = aElement->GetPrimaryFrame();
   if (!frame) {
     return false;
@@ -1854,9 +1861,10 @@ static bool IsAccessKeyTarget(Element* aElement, nsAString& aKey) {
     return true;
   }
 
-  // XUL label elements are never focusable, so we need to check for them
+  // label elements are never focusable, so we need to check for them
   // explicitly before giving up.
-  if (aElement->IsXULElement(nsGkAtoms::label)) {
+  if (aElement->IsXULElement(nsGkAtoms::label) ||
+      aElement->IsHTMLElement(nsGkAtoms::label)) {
     return true;
   }
 
@@ -2530,7 +2538,8 @@ void EventStateManager::FireContextClick() {
   // |mCurrentTarget| when we're through because no one else is doing anything
   // more with this event and it will get reset on the very next event to the
   // correct frame).
-  mCurrentTarget = mPresContext->GetPrimaryFrameFor(mGestureDownContent);
+  mCurrentTarget =
+      mPresContext->GetPrimaryOrAreaImageFrameFor(mGestureDownContent);
   // make sure the widget sticks around
   nsCOMPtr<nsIWidget> targetWidget;
   if (mCurrentTarget && (targetWidget = mCurrentTarget->GetNearestWidget())) {
@@ -2828,7 +2837,7 @@ void EventStateManager::GenerateDragGesture(
   // Try to find a suitable frame by looping through the ancestors chain.
   for (auto* content :
        mGestureDownFrameOwner->InclusiveFlatTreeAncestorsOfType<nsIContent>()) {
-    if (nsIFrame* target = content->GetPrimaryFrame()) {
+    if (nsIFrame* target = nsLayoutUtils::GetPrimaryOrAreaImageFrame(content)) {
       mCurrentTarget = target;
 
       if (content != mGestureDownFrameOwner) {
@@ -4225,7 +4234,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         //
         // TODO: Probably this should be moved to Element::PostHandleEvent.
         for (; newFocus; newFocus = newFocus->GetFlattenedTreeParentElement()) {
-          nsIFrame* frame = newFocus->GetPrimaryFrame();
+          nsIFrame* frame = nsLayoutUtils::GetPrimaryOrAreaImageFrame(newFocus);
           if (!frame) {
             continue;
           }
@@ -5293,7 +5302,8 @@ class MOZ_STACK_CLASS ESMEventCB : public EventDispatchingCallback {
   MOZ_CAN_RUN_SCRIPT
   void HandleEvent(EventChainPostVisitor& aVisitor) override {
     if (aVisitor.mPresContext) {
-      nsIFrame* frame = aVisitor.mPresContext->GetPrimaryFrameFor(mTarget);
+      nsIFrame* frame =
+          aVisitor.mPresContext->GetPrimaryOrAreaImageFrameFor(mTarget);
       if (frame) {
         frame->HandleEvent(aVisitor.mPresContext, aVisitor.mEvent->AsGUIEvent(),
                            &aVisitor.mEventStatus);
@@ -5325,8 +5335,8 @@ static UniquePtr<WidgetMouseEvent> CreateMouseOrPointerWidgetEvent(
   if (IsPointerEventMessage(aMessage)) {
     AUTO_PROFILER_LABEL("CreateMouseOrPointerWidgetEvent", OTHER);
 
-    newEvent = MakeUnique<WidgetPointerEvent>(aMouseEvent->IsTrusted(),
-                                              aMessage, aMouseEvent->mWidget);
+    newEvent = std::make_unique<WidgetPointerEvent>(
+        aMouseEvent->IsTrusted(), aMessage, aMouseEvent->mWidget);
     if (const WidgetPointerEvent* const sourcePointerEvent =
             aMouseEvent->AsPointerEvent()) {
       WidgetPointerEvent* const newPointerEvent =
@@ -5337,9 +5347,9 @@ static UniquePtr<WidgetMouseEvent> CreateMouseOrPointerWidgetEvent(
       // Not assigning mFromTouchEvent
     }
   } else {
-    newEvent = MakeUnique<WidgetMouseEvent>(aMouseEvent->IsTrusted(), aMessage,
-                                            aMouseEvent->mWidget,
-                                            WidgetMouseEvent::eReal);
+    newEvent = std::make_unique<WidgetMouseEvent>(
+        aMouseEvent->IsTrusted(), aMessage, aMouseEvent->mWidget,
+        WidgetMouseEvent::eReal);
   }
 
   // Inherit whether the event is synthesized by the test API or not.
@@ -5420,7 +5430,7 @@ EventStateManager::DispatchMouseOrPointerBoundaryEvent(
       return nullptr;
     }
     nsIFrame* const pointerLockedFrame =
-        mPresContext->GetPrimaryFrameFor(pointerLockedElement);
+        mPresContext->GetPrimaryOrAreaImageFrameFor(pointerLockedElement);
     if (NS_WARN_IF(!pointerLockedFrame)) {
       return nullptr;
     }
@@ -5438,7 +5448,7 @@ EventStateManager::DispatchMouseOrPointerBoundaryEvent(
   // from the tree.
   nsCOMPtr<nsIWidget> targetWidget;
   if (nsIFrame* const targetFrame =
-          mPresContext->GetPrimaryFrameFor(aTargetContent)) {
+          mPresContext->GetPrimaryOrAreaImageFrameFor(aTargetContent)) {
     targetWidget = targetFrame->GetNearestWidget();
   }
 
@@ -5472,7 +5482,8 @@ EventStateManager::DispatchMouseOrPointerBoundaryEvent(
         // old target and then dispatch a cross-process event. (mCurrentTarget
         // will be set back below.) HandleCrossProcessEvent will query for the
         // proper target via GetEventTarget which will return mCurrentTarget.
-        mCurrentTarget = mPresContext->GetPrimaryFrameFor(targetContent);
+        mCurrentTarget =
+            mPresContext->GetPrimaryOrAreaImageFrameFor(targetContent);
         HandleCrossProcessEvent(remoteEvent.get(), &status);
       } else if (aMessage == eMouseOver) {
         UniquePtr<WidgetMouseEvent> remoteEvent =
@@ -5834,9 +5845,11 @@ void EventStateManager::RequestLockPointer(nsIWidget* aWidget,
                                  : nsIWidget::NativePointerLockMode::Regular);
 
   // Store the last known ref point so we can reposition the pointer after
-  // unlock.
+  // unlock. Don't reposition it if we've only seen synthesized events.
+  sRestorePointerAfterUnlock = sLastRealScreenPoint.isSome();
   sPreLockScreenPoint = LayoutDeviceIntPoint::Round(
-      sLastScreenPoint * aPresContext->CSSToDevPixelScale());
+      sLastRealScreenPoint.valueOr(sLastScreenPoint) *
+      aPresContext->CSSToDevPixelScale());
 
   // Fire a synthetic mouse move to ensure event state is updated. We first
   // set the mouse to the center of the window, so that the mouse event
@@ -5963,10 +5976,16 @@ void EventStateManager::ReleaseLockedPointer(nsIWidget* aWidget) {
 
   LayoutDeviceIntPoint preLockScreenPoint = sPreLockScreenPoint;
   sPreLockScreenPoint = kInvalidRefPoint;
+  const bool restorePointer = sRestorePointerAfterUnlock;
+  sRestorePointerAfterUnlock = false;
 
   if (aWidget) {
     // Deactivate native pointer lock on platforms where it is required
     aWidget->UnlockNativePointer();
+
+    if (!restorePointer) {
+      return;
+    }
 
     // Unlocking, so return pointer to the original position by firing a
     // synthetic mouse event. We first reset sLastRefPoint and
@@ -6425,7 +6444,8 @@ nsresult EventStateManager::InitAndDispatchClickEvent(
   nsIFrame* targetFrame = aCurrentTarget;
   if (aOverrideClickTarget) {
     target = aOverrideClickTarget;
-    targetFrame = aOverrideClickTarget->GetPrimaryFrame();
+    targetFrame =
+        nsLayoutUtils::GetPrimaryOrAreaImageFrame(aOverrideClickTarget);
   }
 
   if (!target->IsInComposedDoc()) {
@@ -6537,7 +6557,8 @@ nsresult EventStateManager::DispatchClickEvents(
 
   bool fireAuxClick = notDispatchToContents;
 
-  AutoWeakFrame currentTarget = aClickTarget->GetPrimaryFrame();
+  AutoWeakFrame currentTarget =
+      nsLayoutUtils::GetPrimaryOrAreaImageFrame(aClickTarget);
   nsresult rv = InitAndDispatchClickEvent(
       aMouseUpEvent, aStatus, ePointerClick, aPresShell, aClickTarget,
       currentTarget, notDispatchToContents, aOverrideClickTarget);
@@ -6728,7 +6749,8 @@ nsIFrame* EventStateManager::GetEventTarget() {
   }
 
   if (mCurrentTargetContent) {
-    mCurrentTarget = mPresContext->GetPrimaryFrameFor(mCurrentTargetContent);
+    mCurrentTarget =
+        mPresContext->GetPrimaryOrAreaImageFrameFor(mCurrentTargetContent);
     if (mCurrentTarget) {
       return mCurrentTarget;
     }
@@ -6881,7 +6903,9 @@ bool EventStateManager::SetContentState(nsIContent* aContent,
         NS_ASSERTION(!aContent || aContent->GetComposedDoc() ==
                                       mPresContext->PresShell()->GetDocument(),
                      "Unexpected document");
-        nsIFrame* frame = aContent ? aContent->GetPrimaryFrame() : nullptr;
+        nsIFrame* frame =
+            aContent ? nsLayoutUtils::GetPrimaryOrAreaImageFrame(aContent)
+                     : nullptr;
         if (frame && nsLayoutUtils::IsViewportScrollbarFrame(frame)) {
           // The scrollbars of viewport should not ignore the hover state.
           // Because they are *not* the content of the web page.
@@ -7383,6 +7407,12 @@ nsresult EventStateManager::DoContentCommandInsertTextEvent(
     return NS_OK;
   }
 
+  if (aEvent->ShouldCheckEnabledOnly()) {
+    aEvent->mIsEnabled = !activeEditor->IsReadonly();
+    aEvent->mSucceeded = true;
+    return NS_OK;
+  }
+
   nsresult rv = activeEditor->InsertTextAsAction(aEvent->mString.ref());
   aEvent->mIsEnabled = rv != NS_SUCCESS_DOM_NO_OPERATION;
   aEvent->mSucceeded = NS_SUCCEEDED(rv);
@@ -7459,6 +7489,12 @@ nsresult EventStateManager::DoContentCommandReplaceTextEvent(
   }
   if (!aEvent->mSelection.mReplaceSrcString.Equals(targetStr)) {
     aEvent->mSucceeded = false;
+    return NS_OK;
+  }
+
+  if (aEvent->ShouldCheckEnabledOnly()) {
+    aEvent->mIsEnabled = !activeEditor->IsReadonly();
+    aEvent->mSucceeded = true;
     return NS_OK;
   }
 

@@ -17,7 +17,6 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/browser/NimbusFeatures.h"
 
-#define AITAB_ENABLED_PREF "browser.smartwindow.aitab.enabled"
 #define REFERRALS_ENABLED_PREF "browser.referrals.enabled"
 #define PROFILES_ENABLED_PREF "browser.profiles.enabled"
 #define ABOUT_WELCOME_CHROME_URL \
@@ -167,7 +166,7 @@ static const RedirEntry kRedirMap[] = {
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT |
          nsIAboutModule::IS_SECURE_CHROME_UI},
 #ifdef MOZ_NORMANDY
-    {"studies", "resource://normandy-content/about-studies/about-studies.html",
+    {"studies", "chrome://nimbus/content/about-studies/about-studies.html",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI |
          nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
          nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
@@ -223,7 +222,7 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   nsAutoCString path = GetAboutModuleName(aURI);
 
   if (path.EqualsASCII("smartpage") &&
-      !mozilla::Preferences::GetBool(AITAB_ENABLED_PREF, false)) {
+      !mozilla::StaticPrefs::browser_smartwindow_aitab_enabled()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 

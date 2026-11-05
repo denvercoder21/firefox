@@ -589,7 +589,8 @@ void SVGTextPathObserver::OnRenderingChange() {
   if (text) {
     text->AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
 
-    if (text->HasAnyStateBits(NS_STATE_SVG_TEXT_IN_REFLOW)) {
+    if (text->HasAnyStateBits(NS_STATE_SVG_TEXT_IN_REFLOW |
+                              NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY)) {
       return;
     }
 
@@ -1041,7 +1042,7 @@ class SVGFilterObserverListForCanvasContext final
   SVGFilterObserverListForCanvasContext(
       const SVGFilterObserverListForCanvasContext&) = default;
 
-  CanvasRenderingContext2D* mContext;
+  CanvasRenderingContext2D* const mContext;
   bool mActive = true;
 };
 

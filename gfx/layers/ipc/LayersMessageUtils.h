@@ -21,7 +21,7 @@
 #include "mozilla/ipc/ByteBuf.h"
 #include "mozilla/ipc/ProtocolMessageUtils.h"
 #include "mozilla/ipc/RustMessageUtils.h"
-#include "mozilla/layers/APZInputBridge.h"
+#include "mozilla/layers/APZBridge.h"
 #include "mozilla/layers/AsyncDragMetrics.h"
 #include "mozilla/layers/CompositorOptions.h"
 #include "mozilla/layers/CompositorScrollUpdate.h"
@@ -573,6 +573,7 @@ struct ParamTraits<mozilla::layers::APZEventResult> {
     WriteParam(aWriter, aParam.mTargetGuid);
     WriteParam(aWriter, aParam.mInputBlockId);
     WriteParam(aWriter, aParam.mTargetCanScrollHorizontally);
+    WriteParam(aWriter, aParam.mSwipableDirectionsForTouch);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -590,7 +591,8 @@ struct ParamTraits<mozilla::layers::APZEventResult> {
 
     return (ReadParam(aReader, &aResult->mTargetGuid) &&
             ReadParam(aReader, &aResult->mInputBlockId) &&
-            ReadParam(aReader, &aResult->mTargetCanScrollHorizontally));
+            ReadParam(aReader, &aResult->mTargetCanScrollHorizontally) &&
+            ReadParam(aReader, &aResult->mSwipableDirectionsForTouch));
   }
 };
 

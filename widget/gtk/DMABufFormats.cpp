@@ -38,6 +38,15 @@
 
 using namespace mozilla::gfx;
 
+// DMABufDevice.h is included only once by the unified build so redefine
+// the logging macros here, other files in the same unit use their own ones.
+#undef LOGDMABUF
+#ifdef MOZ_LOGGING
+#  define LOGDMABUF(args) MOZ_LOG(gDmabufLog, mozilla::LogLevel::Debug, args)
+#else
+#  define LOGDMABUF(args)
+#endif /* MOZ_LOGGING */
+
 #ifndef GBM_FORMAT_P010
 #  define GBM_FORMAT_P010 \
     __gbm_fourcc_code('P', '0', '1', '0') /* 2x2 subsampled Cr:Cb plane */
@@ -159,7 +168,7 @@ class DMABufFeedback final {
   DMABufFormatTable* FormatTable() { return &mFormatTable; }
   DMABufFeedbackTranche* PendingTranche() {
     if (!mPendingTranche) {
-      mPendingTranche = MakeUnique<DMABufFeedbackTranche>();
+      mPendingTranche = std::make_unique<DMABufFeedbackTranche>();
     }
     return mPendingTranche.get();
   }
@@ -190,7 +199,7 @@ class DMABufFeedback final {
 
 DMABufFeedback* DMABufFormats::GetPendingDMABufFeedback() {
   if (!mPendingDMABufFeedback) {
-    mPendingDMABufFeedback = MakeUnique<DMABufFeedback>();
+    mPendingDMABufFeedback = std::make_unique<DMABufFeedback>();
   }
   return mPendingDMABufFeedback.get();
 }
@@ -371,7 +380,7 @@ void DMABufFormats::EnsureBasicFormats() {
   MOZ_DIAGNOSTIC_ASSERT(!mPendingDMABufFeedback,
                         "Can't add extra formats during init!");
   if (!mDMABufFeedback) {
-    mDMABufFeedback = MakeUnique<DMABufFeedback>();
+    mDMABufFeedback = std::make_unique<DMABufFeedback>();
   }
 
   EnsureBasicFormat(GBM_FORMAT_XRGB8888);

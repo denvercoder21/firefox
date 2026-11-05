@@ -264,6 +264,7 @@ struct gfxUserFontAttributes {
 class gfxUserFontSet {
   friend class gfxUserFontEntry;
   friend class gfxOTSMessageContext;
+  friend class gfxPlatformFontList;
 
  public:
   using FontWidth = mozilla::FontWidth;
@@ -364,6 +365,16 @@ class gfxUserFontSet {
 
     // Clear everything so that we don't leak URIs and Principals.
     static void Shutdown();
+
+#if MOZ_FONTATIONS
+    static void PrefChangedCallback(const char* aPref, void* aClosure) {
+      if (!strcmp(aPref, "gfx.font_rendering.fontations.enabled")) {
+        if (sUserFonts) {
+          sUserFonts->Clear();
+        }
+      }
+    }
+#endif
 
     // Memory-reporting support.
     class MemoryReporter final : public nsIMemoryReporter {
@@ -562,6 +573,11 @@ class gfxUserFontSet {
   // true when rules using local names need to be redone
   bool mRebuildLocalRules;
 
+  // Set when this font-set is being destroyed, to prevent re-adding it to the
+  // gfxPlatformFontList's list of active font sets.
+  // Guarded by the platform font-list lock.
+  bool mDestroying = false;
+
   // performance stats
   uint32_t mDownloadCount;
   uint64_t mDownloadSize;
@@ -601,7 +617,24 @@ class gfxUserFontEntry : public gfxFontEntry {
 
   gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle) override;
 
-  gfxFontEntry* GetPlatformFontEntry() const { return mPlatformFontEntry; }
+  void SetPlatformFontEntry(RefPtr<gfxFontEntry>&& aFontEntry)
+      MOZ_EXCLUDES(mLock) {
+    mozilla::AutoWriteLock lock(mLock);
+    mPlatformFontEntry = std::move(aFontEntry);
+  }
+
+  already_AddRefed<gfxFontEntry> GetPlatformFontEntry() const
+      MOZ_EXCLUDES(mLock) {
+    mozilla::AutoReadLock lock(mLock);
+    return do_AddRef(mPlatformFontEntry);
+  }
+
+  // Return whether this user font entry's actual platform font is aOther.
+  bool PlatformFontEntryEquals(const gfxFontEntry* aOther) const
+      MOZ_EXCLUDES(mLock) {
+    mozilla::AutoReadLock lock(mLock);
+    return mPlatformFontEntry == aOther;
+  }
 
   // is the font loading or loaded, or did it fail?
   UserFontLoadState LoadState() const { return mUserFontLoadState; }
@@ -701,7 +734,8 @@ class gfxUserFontEntry : public gfxFontEntry {
 
   // attempt to load the next resource in the src list.
   void LoadNextSrc();
-  void ContinueLoad();
+  void DoContinueLoad();
+  void ScheduleContinueLoad();
   void DoLoadNextSrc(bool aIsContinue);
 
   // change the load state
@@ -802,7 +836,7 @@ class gfxUserFontEntry : public gfxFontEntry {
   bool mUnsupportedFormat;
   mozilla::StyleFontDisplay mFontDisplay;  // timing of userfont fallback
 
-  RefPtr<gfxFontEntry> mPlatformFontEntry;
+  RefPtr<gfxFontEntry> mPlatformFontEntry MOZ_GUARDED_BY(mLock);
   nsTArray<gfxFontFaceSrc> mSrcList;
   uint32_t mCurrentSrcIndex;  // index of src item to be loaded next
   // This field is managed by the nsFontFaceLoader. In the destructor and

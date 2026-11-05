@@ -84,7 +84,30 @@ nsWaylandDisplay* WaylandDisplayGet() {
   return gWaylandDisplay;
 }
 
-void nsWaylandDisplay::SetShm(wl_shm* aShm) { mShm = aShm; }
+#ifdef MOZ_LOGGING
+void nsWaylandDisplay::SetShmFormat(uint32_t aFormat) {
+  switch (aFormat) {
+    case WL_SHM_FORMAT_ABGR2101010:
+      LOG("WL_SHM_FORMAT_ABGR2101010 supported");
+      break;
+    case WL_SHM_FORMAT_YUV420:
+      LOG("WL_SHM_FORMAT_YUV420 supported");
+      break;
+  }
+}
+#endif
+
+void nsWaylandDisplay::SetShm(wl_shm* aShm) {
+  mShm = aShm;
+#ifdef MOZ_LOGGING
+  static const struct wl_shm_listener shm_listener{
+      [](void* data, struct wl_shm* wl_shm, uint32_t format) {
+        auto* display = static_cast<nsWaylandDisplay*>(data);
+        display->SetShmFormat(format);
+      }};
+  wl_shm_add_listener(mShm, &shm_listener, this);
+#endif
+}
 
 class WaylandPointerEvent {
  public:
@@ -734,7 +757,7 @@ static const struct wl_output_listener output_listener = {
 
 void nsWaylandDisplay::AddMonitorConfig(int aId, wl_output* aWlOutput) {
   LOG("nsWaylandDisplay add monitor ID %d num %zu", aId, mMonitors.Length());
-  mMonitors.AppendElement(MakeUnique<MonitorConfig>(aId, aWlOutput));
+  mMonitors.AppendElement(std::make_unique<MonitorConfig>(aId, aWlOutput));
 }
 
 nsWaylandDisplay::MonitorConfig::MonitorConfig(int aId,

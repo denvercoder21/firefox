@@ -6,7 +6,6 @@ Tests for the 'tests.py' transforms
 
 import hashlib
 from functools import partial
-from pprint import pprint
 from types import SimpleNamespace
 
 import mozunit
@@ -15,7 +14,7 @@ from taskgraph.util import json
 
 from gecko_taskgraph.test.conftest import FakeParameters
 from gecko_taskgraph.transforms import test as test_transforms
-from gecko_taskgraph.transforms.test import chunk
+from gecko_taskgraph.transforms.test import chunk, other
 from gecko_taskgraph.transforms.test.chunk import DYNAMIC_CHUNK_DURATION
 from gecko_taskgraph.util import chunking
 
@@ -138,6 +137,16 @@ def test_split_variants(monkeypatch, run_full_config_transform, make_test_task):
         "--setpref=bar=1",
     ]
     assert tasks[1]["treeherder-symbol"] == "g-foo-bar(t)"
+
+    # test variants kept in the treeherder group
+    input_task = make_test_task(**{
+        "run-without-variant": True,
+        "treeherder-symbol": "g()",
+        "treeherder-group-variants": True,
+        "variants": ["foo", "foo+bar"],
+    })
+    tasks = list(run_split_variants(input_task))
+    assert [t["treeherder-symbol"] for t in tasks] == ["g()", "g(foo)", "g(foo-bar)"]
 
     # test 'when' filter
     input_task = make_test_task(**{
@@ -268,62 +277,11 @@ def test_set_test_setting(run_transform, task, expected):
     assert task["test-setting"] == expected
 
 
-def assert_spi_not_disabled(task):
-    extra_options = task["mozharness"]["extra-options"]
-    # The pref to enable this gets set outside of this transform, so only
-    # bother asserting that the pref to disable does not exist.
-    assert (
-        "--setpref=media.peerconnection.mtransport_process=false" not in extra_options
-    )
-    assert "--setpref=network.process.enabled=false" not in extra_options
-
-
-def assert_spi_disabled(task):
-    extra_options = task["mozharness"]["extra-options"]
-    assert "--setpref=media.peerconnection.mtransport_process=false" in extra_options
-    assert "--setpref=media.peerconnection.mtransport_process=true" not in extra_options
-    assert "--setpref=network.process.enabled=false" in extra_options
-    assert "--setpref=network.process.enabled=true" not in extra_options
-
-
-@pytest.mark.parametrize(
-    "task,callback",
-    (
-        pytest.param(
-            {"attributes": {"unittest_variant": "socketprocess"}},
-            assert_spi_not_disabled,
-            id="socketprocess",
-        ),
-        pytest.param(
-            {
-                "attributes": {"unittest_variant": "socketprocess_networking"},
-            },
-            assert_spi_not_disabled,
-            id="socketprocess_networking",
-        ),
-        pytest.param({}, assert_spi_disabled, id="no variant"),
-        pytest.param(
-            {"suite": "cppunit", "attributes": {"unittest_variant": "socketprocess"}},
-            assert_spi_not_disabled,
-            id="excluded suite",
-        ),
-        pytest.param(
-            {"attributes": {"unittest_variant": "no-fission+socketprocess"}},
-            assert_spi_not_disabled,
-            id="composite variant",
-        ),
-    ),
-)
-def test_ensure_spi_disabled_on_all_but_spi(
-    make_test_task, run_transform, task, callback
-):
-    task.setdefault("suite", "mochitest-plain")
-    task = make_test_task(**task)
-    task = list(
-        run_transform(test_transforms.other.ensure_spi_disabled_on_all_but_spi, task)
-    )[0]
-    pprint(task)
-    callback(task)
+@pytest.fixture(autouse=True)
+def clear_included_runtimes():
+    chunking._included_runtimes.cache_clear()
+    yield
+    chunking._included_runtimes.cache_clear()
 
 
 def test_resolve_dynamic_chunks_uses_variant_suffix(
@@ -344,8 +302,10 @@ def test_resolve_dynamic_chunks_uses_variant_suffix(
     )
     monkeypatch.setattr(
         "gecko_taskgraph.transforms.test.chunk.resolve_manifest_runtimes",
-        lambda runtimes, manifests: {
-            m: runtimes[m] for m in manifests if m in runtimes
+        lambda platform, suite_name, manifests: {
+            m: r
+            for m, r in fake_get_runtimes(platform, suite_name).items()
+            if m in manifests
         },
     )
 
@@ -369,6 +329,7 @@ def test_resolve_dynamic_chunks_falls_back_without_runtimes(
     monkeypatch.setattr(
         "gecko_taskgraph.transforms.test.chunk.get_runtimes", lambda p, s: {}
     )
+    monkeypatch.setattr(chunking, "get_runtimes", lambda p, s: {})
 
     task = make_test_task(**{
         "chunks": "dynamic",
@@ -743,6 +704,7 @@ def task_with_zero_runtimes(monkeypatch, make_test_task):
         runtimes = dict.fromkeys(manifests, 0)
         runtimes["manifest0.toml"] = DYNAMIC_CHUNK_DURATION
         monkeypatch.setattr(chunk, "get_runtimes", lambda platform, suite: runtimes)
+        monkeypatch.setattr(chunking, "get_runtimes", lambda platform, suite: runtimes)
 
         return make_test_task(**{
             "attributes": {
@@ -790,6 +752,7 @@ def task_with_partial_chunk_runtimes(monkeypatch, make_test_task):
         manifests = [f"manifest{i}.toml" for i in range(4)]
         runtimes = dict.fromkeys(manifests, DYNAMIC_CHUNK_DURATION * 0.35)
         monkeypatch.setattr(chunk, "get_runtimes", lambda platform, suite: runtimes)
+        monkeypatch.setattr(chunking, "get_runtimes", lambda platform, suite: runtimes)
 
         return make_test_task(**{
             "attributes": {
@@ -857,6 +820,18 @@ def test_drop_artifact_build_unsupported(
         )
     )
     assert bool(tasks) is expected_kept
+
+
+def test_perfherder_extra_options(run_transform, make_test_task):
+    task = make_test_task(
+        attributes={"unittest_suite": "mochitest-plain", "unittest_variant": "xorig"}
+    )
+    task = list(run_transform(other.set_perfherder_extra_options, task))[0]
+    assert task["worker"]["env"]["PERFHERDER_EXTRA_OPTIONS"] == "mochitest-plain xorig"
+
+    task = make_test_task(attributes={"unittest_suite": "xpcshell"})
+    task = list(run_transform(other.set_perfherder_extra_options, task))[0]
+    assert task["worker"]["env"]["PERFHERDER_EXTRA_OPTIONS"] == "xpcshell"
 
 
 if __name__ == "__main__":

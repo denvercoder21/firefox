@@ -322,10 +322,19 @@ add_task(async function test_tabGroupOverflowCounterScrollable() {
   // collapse and expand once to place grouped tab at end of tabstrip
   await TabGroupTestUtils.toggleCollapsed(group);
   await TabGroupTestUtils.toggleCollapsed(group);
-  // collapsing again here causes the overflow counter to be placed off screen
+  // collapsing again shows the overflow counter after the selected tab
   await TabGroupTestUtils.toggleCollapsed(group);
-  Assert.ok(
-    !win.gBrowser.tabContainer.arrowScrollbox.hasAttribute("scrolledtoend"),
+  // Align the selected tab with the end of the scrollport so that the
+  // overflow counter is off screen.
+  let { arrowScrollbox } = win.gBrowser.tabContainer;
+  let end = arrowScrollbox.startEndProps[1];
+  arrowScrollbox.scrollByPixels(
+    win.gBrowser.selectedTab.getBoundingClientRect()[end] -
+      arrowScrollbox.scrollbox.getBoundingClientRect()[end],
+    true
+  );
+  await TestUtils.waitForCondition(
+    () => !arrowScrollbox.hasAttribute("scrolledtoend"),
     "Scrollbox correctly overflows at end"
   );
   await TabGroupTestUtils.removeTabGroup(group);
@@ -916,6 +925,60 @@ add_task(async function test_tabGroupSelect() {
   BrowserTestUtils.removeTab(tab3);
 });
 
+/**
+ * Bug 2067355 - Selecting a group that already holds the active tab must still
+ * scroll that tab into view.
+ */
+add_task(async function test_tabGroupSelectScrollsActiveTabIntoView() {
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.overflowTabs(null, win, { overflowAtStart: true });
+
+  let arrowScrollbox = win.gBrowser.tabContainer.arrowScrollbox;
+  let [startProp, endProp] = arrowScrollbox.startEndProps;
+  let start = ele => ele.getBoundingClientRect()[startProp];
+  let end = ele => ele.getBoundingClientRect()[endProp];
+
+  let group = win.gBrowser.addTabGroup([win.gBrowser.tabs.at(-1)]);
+  let activeTab = group.tabs[0];
+  win.gBrowser.selectedTab = activeTab;
+  Assert.ok(activeTab.selected, "Tab in the group is selected");
+
+  let scrollportStart = start(arrowScrollbox.scrollbox);
+  let scrollportEnd = end(arrowScrollbox.scrollbox);
+  let isInView = ele =>
+    scrollportStart <= start(ele) && end(ele) <= scrollportEnd;
+
+  info("scrolling to beginning of tabstrip");
+  arrowScrollbox.ensureElementIsVisible(win.gBrowser.tabs[0], true);
+  await TestUtils.waitForCondition(
+    () =>
+      arrowScrollbox.hasAttribute("scrolledtostart") && !isInView(activeTab),
+    "Waiting for the active tab to scroll out of view"
+  );
+
+  info("selecting the group that already holds the active tab");
+  group.select();
+  await TestUtils.waitForCondition(
+    () => isInView(activeTab),
+    "Waiting for the active tab to scroll into view"
+  );
+
+  Assert.ok(activeTab.selected, "Active tab is still selected");
+  Assert.lessOrEqual(
+    scrollportStart,
+    start(activeTab),
+    `Active tab starts inside the scrollport (${scrollportStart} <= ${start(activeTab)})`
+  );
+  Assert.lessOrEqual(
+    end(activeTab),
+    scrollportEnd,
+    `Active tab ends inside the scrollport (${end(activeTab)} <= ${scrollportEnd})`
+  );
+
+  await TabGroupTestUtils.removeTabGroup(group);
+  await BrowserTestUtils.closeWindow(win);
+});
+
 // Opening new tabs from links around/within tab groups
 // ---
 
@@ -1365,6 +1428,66 @@ add_task(async function test_bug1997096_autoUncollapseOnRightClick() {
   BrowserTestUtils.removeTab(newTab);
   BrowserTestUtils.removeTab(groupedTab);
 });
+
+add_task(async function test_bug2003021_relatedTabPositionInCollapsedGroup() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.insertRelatedAfterCurrent", true]],
+  });
+  let [tab1, tab2, tab3] = createManyTabs(3);
+  let group = gBrowser.addTabGroup([tab1, tab2, tab3]);
+  gBrowser.selectedTab = tab1;
+  group.collapsed = true;
+
+  let relatedTab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    relatedToCurrent: true,
+    skipAnimation: true,
+  });
+  Assert.deepEqual(
+    group.tabs,
+    [tab1, relatedTab1, tab2, tab3],
+    "Related tab is inserted after the active tab in the collapsed group"
+  );
+
+  group.collapsed = true;
+  let relatedTab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    relatedToCurrent: true,
+    skipAnimation: true,
+  });
+  Assert.deepEqual(
+    group.tabs,
+    [tab1, relatedTab1, relatedTab2, tab2, tab3],
+    "Second related tab is inserted after the first related tab"
+  );
+
+  await removeTabGroup(group);
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(
+  async function test_bug2003021_relatedTabPositionInCollapsedGroupSplitView() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.tabs.insertRelatedAfterCurrent", true]],
+    });
+    let [tab1, tab2, tab3] = createManyTabs(3);
+    let splitview = gBrowser.addTabSplitView([tab1, tab2]);
+    let group = gBrowser.addTabGroup([splitview, tab3]);
+    gBrowser.selectedTab = tab1;
+    group.collapsed = true;
+
+    let relatedTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      relatedToCurrent: true,
+      skipAnimation: true,
+    });
+    Assert.deepEqual(
+      group.tabs,
+      [tab1, tab2, relatedTab, tab3],
+      "Related tab is inserted after the active split view in the collapsed group"
+    );
+
+    await removeTabGroup(group);
+    await SpecialPowers.popPrefEnv();
+  }
+);
 
 add_task(async function test_bug2007061_hideSplitViewWhenDraggingGroup() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");

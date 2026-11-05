@@ -8,9 +8,12 @@ import hashlib
 import os
 import pathlib
 import sys
+import threading
 import time
+from concurrent.futures import Future
 
 import requests
+from mozsystemmonitor.resourcemonitor import SystemResourceMonitor
 from taskgraph import create
 from taskgraph.util import json
 from taskgraph.util.taskcluster import requests_retry_session
@@ -23,7 +26,14 @@ except ImportError:
 
 BUGBUG_BASE_URL = "https://bugbug.moz.tools"
 RETRY_TIMEOUT = 9 * 60  # seconds
-RETRY_INTERVAL = 10  # seconds
+RETRY_INTERVAL = 2  # seconds
+
+# Names the file a query started by start_push_schedules writes its result to,
+# for push_schedules to wait for rather than querying bugbug itself. Being in
+# the environment, it reaches the processes kinds are loaded in, however they
+# are started.
+PUSH_SCHEDULES_ENV = "GECKO_BUGBUG_PUSH_SCHEDULES"
+RESULT_POLL_INTERVAL = 0.2  # seconds
 
 # Preset confidence thresholds.
 CT_LOW = 0.7
@@ -71,11 +81,15 @@ class BugbugTimeoutException(Exception):
     pass
 
 
-@functools.cache
-def get_session():
+def _new_session():
     s = requests.Session()
     s.headers.update({"X-API-KEY": "gecko-taskgraph"})
     return requests_retry_session(retries=5, session=s)
+
+
+@functools.cache
+def get_session():
+    return _new_session()
 
 
 def _perfherder_artifact_path(base_path, perfherder_data):
@@ -121,42 +135,87 @@ def _write_perfherder_data(lower_is_better):
             json.dump(perfherder_data, f)
 
 
-@functools.cache
-def push_schedules(branch, rev):
-    # Noop if we're in test-action-callback
-    if create.testing:
-        return
+def _push_schedules_url(branch, rev):
+    return BUGBUG_BASE_URL + f"/push/{branch}/{rev}/schedules"
 
-    url = BUGBUG_BASE_URL + f"/push/{branch}/{rev}/schedules"
-    start = monotonic()
-    session = get_session()
 
+def _push_schedules_timeout(branch):
     # On try there is no fallback and pulling is slower, so we allow bugbug more
     # time to compute the results.
     # See https://github.com/mozilla/bugbug/issues/1673.
     timeout = RETRY_TIMEOUT
     if branch == "try":
         timeout += int(timeout / 3)
+    return timeout
 
-    attempts = timeout / RETRY_INTERVAL
+
+def _write_push_schedules_result(path, result):
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w") as fh:
+        json.dump(result, fh)
+    os.replace(tmp_path, path)
+
+
+def _wait_for_push_schedules_result(path, branch, rev):
+    """Wait for the result a query started by start_push_schedules writes to
+    `path`, and return it, or None if it doesn't come or is for another push."""
+    start = monotonic()
+    # The query gives up after the same timeout, counted from when it started,
+    # which is before we did; leave time for its last request.
+    deadline = start + _push_schedules_timeout(branch) + 60
+    result = None
+    try:
+        while result is None and monotonic() < deadline:
+            try:
+                with open(path) as fh:
+                    result = json.load(fh)
+            except FileNotFoundError:
+                time.sleep(RESULT_POLL_INTERVAL)
+    finally:
+        SystemResourceMonitor.record_marker(
+            "bugbug wait",
+            start,
+            monotonic(),
+            {"type": "Text", "text": _push_schedules_url(branch, rev)},
+        )
+    if result is None or (result["branch"], result["rev"]) != (branch, rev):
+        return None
+    return result
+
+
+def _fetch_push_schedules(branch, rev, session, *, write_perfherder_data=True):
+    # Noop if we're in test-action-callback
+    if create.testing:
+        return
+
+    url = _push_schedules_url(branch, rev)
+    start = monotonic()
+
+    deadline = start + _push_schedules_timeout(branch)
     i = 0
-    while i < attempts:
-        r = session.get(url)
-        r.raise_for_status()
+    try:
+        while True:
+            r = session.get(url)
+            r.raise_for_status()
 
-        if r.status_code != 202:
-            break
+            if r.status_code != 202 or monotonic() + RETRY_INTERVAL > deadline:
+                break
 
-        time.sleep(RETRY_INTERVAL)
-        i += 1
-    end = monotonic()
+            time.sleep(RETRY_INTERVAL)
+            i += 1
+    finally:
+        end = monotonic()
+        SystemResourceMonitor.record_marker(
+            "bugbug", start, end, {"type": "Text", "text": url}
+        )
 
-    _write_perfherder_data(
-        lower_is_better={
-            "bugbug_push_schedules_time": end - start,
-            "bugbug_push_schedules_retries": i,
-        }
-    )
+    if write_perfherder_data:
+        _write_perfherder_data(
+            lower_is_better={
+                "bugbug_push_schedules_time": end - start,
+                "bugbug_push_schedules_retries": i,
+            }
+        )
 
     data = r.json()
     if r.status_code == 202:
@@ -171,6 +230,63 @@ def push_schedules(branch, rev):
         }
 
     return data
+
+
+@functools.cache
+def push_schedules(branch, rev):
+    if path := os.environ.get(PUSH_SCHEDULES_ENV):
+        result = _wait_for_push_schedules_result(path, branch, rev)
+        if result is not None:
+            if "data" in result:
+                return result["data"]
+            if "timeout" in result:
+                raise BugbugTimeoutException(result["timeout"])
+    return _fetch_push_schedules(branch, rev, get_session())
+
+
+def start_push_schedules(branch, rev, result_path=None):
+    """Start querying bugbug for the push schedules in a daemon thread.
+
+    Returns a `Future` that callers can either check or ignore; since the
+    thread is a daemon, it won't keep the process alive if bugbug is slow.
+
+    If `result_path` is given, the result is also written to it, for
+    push_schedules to read when PUSH_SCHEDULES_ENV names it, including in
+    processes that don't have the thread, like those taskgraph forks to load
+    kinds. The thread uses its own session, so that those processes don't
+    inherit and reuse its open connections, and so that it doesn't share a
+    session with the main thread.
+    """
+    future = Future()
+
+    def run():
+        result = {"branch": branch, "rev": rev}
+        try:
+            # Nothing else queries bugbug when the result is shared, so report
+            # how long it took.
+            data = _fetch_push_schedules(
+                branch,
+                rev,
+                _new_session(),
+                write_perfherder_data=result_path is not None,
+            )
+            result["data"] = data
+            future.set_result(data)
+        except BugbugTimeoutException as e:
+            result["timeout"] = str(e)
+            future.set_exception(e)
+        except Exception as e:
+            result["error"] = repr(e)
+            future.set_exception(e)
+        if result_path:
+            try:
+                _write_push_schedules_result(result_path, result)
+            except OSError:
+                # The decision task may have finished and cleaned up already.
+                pass
+
+    threading.Thread(target=run, daemon=True).start()
+    return future
 
 
 @functools.cache

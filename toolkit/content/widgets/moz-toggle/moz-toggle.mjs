@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at htp://mozilla.org/MPL/2.0/. */
 
+/// <reference path="./moz-toggle.tagmap.d.ts" />
+
 import { html, ifDefined } from "../vendor/lit.all.mjs";
 import { MozBaseInputElement } from "../lit-utils.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
 
 /**
@@ -22,7 +24,7 @@ import "chrome://global/content/elements/moz-label.mjs";
  * @fires toggle
  *  Custom event indicating that the toggle's pressed state has changed.
  */
-export default class MozToggle extends MozBaseInputElement {
+export class MozToggle extends MozBaseInputElement {
   static properties = {
     pressed: { type: Boolean, reflect: true },
   };

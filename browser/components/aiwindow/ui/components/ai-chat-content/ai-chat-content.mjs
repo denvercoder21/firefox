@@ -9,30 +9,36 @@ import {
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { isTabGroupMember } from "chrome://browser/content/urlbar/SmartbarMentionUtils.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/assistant-message-footer.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/chat-assistant-error.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/chat-assistant-loader.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/chat-assistant-citations.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/website-chip-container.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/ai-website-confirmation.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/ai-chat-message.mjs";
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/ai-action-confirmation.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/kit-mention.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/agent-monitor-item.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// TODO: Bug 2088699 - Render this as a tool UI in the research flow.
+// eslint-disable-next-line import-x/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/ai-clarifying-question.mjs";
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-textarea.mjs";
 import {
   dispatchClientError,
   installClientErrorListeners,
 } from "chrome://browser/content/aiwindow/modules/ClientErrorTelemetry.mjs";
+import { STATE_CHOOSE } from "chrome://browser/content/aiwindow/components/aitab-tool-ui.mjs";
 
 /**
  * @typedef {import("chrome://browser/content/aiwindow/components/ai-action-confirmation.mjs").TabSelectionData} TabSelectionData
@@ -47,6 +53,7 @@ const INVALID_MESSAGE_DATA = {};
  * UI labels for tool results and follow-ups.
  */
 const UI_TYPES = {
+  AITAB: "aitab",
   WEBSITE_CONFIRMATION: "website-confirmation",
   TAB_GROUP_CONFIRMATION: "tab-group-confirmation",
   AI_ACTION_RESULT: "ai-action-result",
@@ -59,11 +66,13 @@ const UI_TYPES = {
  * UI update types for communicating user interactions with tool UIs back to the actor.
  */
 const UI_UPDATE_TYPES = {
+  OPEN_AITAB: "open-aitab",
   CONFIRMATION_TAB_SELECTION: "confirmation-tab-selection",
   CANCEL_TAB_SELECTION: "cancel-tab-selection",
   CONFIRM_TAB_GROUP_SELECTION: "confirm-tab-group-selection",
   CONFIRM_OPEN_AND_GROUP_TABS_SELECTION:
     "confirm-open-and-group-tabs-selection",
+  TOGGLE_ALL_TAB_SELECTION: "toggle-all-tab-selection",
   UNDO_TAB_CLOSE: "undo-tab-close",
   UNDO_TAB_GROUP: "undo-tab-group",
   RETRY_PROMPT: "retry-prompt",
@@ -170,6 +179,7 @@ export class AIChatContent extends MozLitElement {
 
     // Initialize UI render map
     this.#uiRenderMap = {
+      [UI_TYPES.AITAB]: msg => this.#renderAITab(msg),
       [UI_TYPES.TAB_GROUP_CONFIRMATION]: msg =>
         this.#renderTabGroupConfirmation(msg),
       [UI_TYPES.WEBSITE_CONFIRMATION]: msg =>
@@ -238,12 +248,6 @@ export class AIChatContent extends MozLitElement {
 
   updated(changedProperties) {
     super.updated(changedProperties);
-    // When the conversation is replaced (e.g. switching to a tab with an empty
-    // sidebar) no scroll event fires, so recompute the jump-to-bottom button
-    // here to avoid it lingering from the previous conversation.
-    if (changedProperties.has("conversationState")) {
-      this.#updateJumpButtonState();
-    }
     this.#maybeFocusAgentMonitorCard();
   }
 
@@ -381,7 +385,7 @@ export class AIChatContent extends MozLitElement {
   #initFooterActionListeners() {
     this.addEventListener("copy-message", event => {
       const { messageId } = event.detail ?? {};
-      const text = this.#getAssistantMessageBody(messageId);
+      const text = this.#getAssistantMessageCopyText(messageId);
       this.#dispatchAction("copy", { messageId, text });
     });
 
@@ -464,18 +468,9 @@ export class AIChatContent extends MozLitElement {
   }
 
   #initOverflowObserver() {
-    this.#overflowObserver = new ResizeObserver(() => {
-      // The wrapper resizes on every streamed chunk, and reading
-      // scrollHeight/clientHeight below forces a synchronous reflow. Coalesce
-      // to one read per frame.
-      if (this.#overflowRafId) {
-        return;
-      }
-      this.#overflowRafId = requestAnimationFrame(() => {
-        this.#overflowRafId = null;
-        this.#updateOverflowState();
-      });
-    });
+    this.#overflowObserver = new ResizeObserver(() =>
+      this.#updateOverflowState()
+    );
     this.updateComplete.then(() => {
       this.#overflowObserver.observe(
         this.shadowRoot.querySelector(".chat-inner-wrapper")
@@ -483,9 +478,15 @@ export class AIChatContent extends MozLitElement {
     });
   }
 
+  /**
+   * Toggle the scroll container's `overflowing` attribute (which drives the
+   * scroll fades) to match whether it actually scrolls, and recompute the
+   * jump-to-bottom button, which no scroll event covers when the change came
+   * from content rather than from scrolling.
+   */
   #updateOverflowState() {
-    const wrapper = this.shadowRoot.querySelector(".chat-content-wrapper");
-    const innerWrapper = this.shadowRoot.querySelector(".chat-inner-wrapper");
+    const wrapper = this.#wrapper;
+    const innerWrapper = this.shadowRoot?.querySelector(".chat-inner-wrapper");
 
     if (!wrapper || !innerWrapper) {
       return;
@@ -501,9 +502,6 @@ export class AIChatContent extends MozLitElement {
         wrapper.scrollHeight > wrapper.clientHeight + thresholdPadding
     );
 
-    // Recompute the jump-to-bottom button after content resizes (e.g.
-    // switching to an empty/short conversation) since no scroll event
-    // fires in that case and the button would otherwise stay visible.
     this.#updateJumpButtonState();
   }
 
@@ -587,6 +585,27 @@ export class AIChatContent extends MozLitElement {
     });
 
     return msg?.body ?? "";
+  }
+
+  /**
+   * The text the copy button copies for an assistant message. A localized
+   * message copies the text the user sees, since its body holds text meant
+   * only for the model.
+   *
+   * @param {string} messageId - Id of the assistant message
+   * @returns {string}
+   */
+  #getAssistantMessageCopyText(messageId) {
+    const msg = this.conversationState.find(
+      m => m?.role === "assistant" && m?.messageId === messageId
+    );
+    if (!msg?.messageL10n) {
+      return this.#getAssistantMessageBody(messageId);
+    }
+    const messageEl = this.shadowRoot?.querySelector(
+      `ai-chat-message[data-message-id="${CSS.escape(messageId)}"]`
+    );
+    return messageEl?.localizedText ?? "";
   }
 
   #onFollowUpSelected(event) {
@@ -1059,7 +1078,18 @@ export class AIChatContent extends MozLitElement {
       citations = [],
     } = event.detail;
 
-    if (!this.#isAIResponseValid(content, toolUIData)) {
+    const hasRenderableResponse = this.#isAIResponseValid(content, toolUIData);
+    const isToolUICleared = toolUIData === null;
+
+    if (!hasRenderableResponse) {
+      if (isToolUICleared) {
+        this.conversationState = this.conversationState.filter(message => {
+          const isMatchingMessage = message.messageId === messageId;
+          const hasToolUI = !!message.toolUIData;
+          const shouldRemoveMessage = isMatchingMessage && hasToolUI;
+          return !shouldRemoveMessage;
+        });
+      }
       return;
     }
 
@@ -1443,6 +1473,21 @@ export class AIChatContent extends MozLitElement {
     return renderFn ? renderFn(msg) : nothing;
   }
 
+  #renderAITab(msg) {
+    return html`<aitab-tool-ui
+      .state=${msg.toolUIData.properties?.state ?? STATE_CHOOSE}
+      .title=${msg.toolUIData.properties?.title ?? ""}
+      .viewerURL=${msg.toolUIData.properties?.viewerURL ?? ""}
+      @aitab-open-request=${event =>
+        this.#dispatchToolUIUpdate({
+          messageId: msg.messageId,
+          toolCallId: msg.toolUIData.toolCallId,
+          updateType: UI_UPDATE_TYPES.OPEN_AITAB,
+          updateData: { openTarget: event.detail.openTarget },
+        })}
+    ></aitab-tool-ui>`;
+  }
+
   #handleConfirmationSubmit = (event, messageId, toolCallId) => {
     this.#dispatchToolUIUpdate({
       messageId,
@@ -1457,6 +1502,15 @@ export class AIChatContent extends MozLitElement {
       messageId,
       toolCallId,
       updateType: UI_UPDATE_TYPES.CANCEL_TAB_SELECTION,
+      updateData: event.detail,
+    });
+  };
+
+  #handleConfirmationToggleAll = (event, messageId, toolCallId) => {
+    this.#dispatchToolUIUpdate({
+      messageId,
+      toolCallId,
+      updateType: UI_UPDATE_TYPES.TOGGLE_ALL_TAB_SELECTION,
       updateData: event.detail,
     });
   };
@@ -1571,6 +1625,12 @@ export class AIChatContent extends MozLitElement {
             msg.messageId,
             toolUIData.toolCallId
           )}
+        @ai-website-confirmation:toggle-all=${event =>
+          this.#handleConfirmationToggleAll(
+            event,
+            msg.messageId,
+            toolUIData.toolCallId
+          )}
       ></ai-website-confirmation>
     `;
   }
@@ -1594,6 +1654,12 @@ export class AIChatContent extends MozLitElement {
           )}
         @ai-website-confirmation:close=${event =>
           this.#handleConfirmationClose(
+            event,
+            msg.messageId,
+            toolUIData.toolCallId
+          )}
+        @ai-website-confirmation:toggle-all=${event =>
+          this.#handleConfirmationToggleAll(
             event,
             msg.messageId,
             toolUIData.toolCallId
@@ -1981,8 +2047,7 @@ export class AIChatContent extends MozLitElement {
           ${this.#renderError()}
         </div>
       </div>
-      <div class="fullpage-top-blur"></div>
-      <div class="fullpage-top-scrim"></div>
+      <div class="fullpage-top-box-shadow"></div>
       <kit-mention variant="sidebar"></kit-mention>
       <div
         class="assistant-response-announcer"

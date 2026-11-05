@@ -549,7 +549,9 @@ static bool CreateExtraBindingInfoVector(
     bool isShadowed = false;
 
     id = unwrappedBindingKeys[i];
-    cx->recordRefToId(id);
+    if (!cx->wrapOrRecordRefToId(&id)) {
+      return false;
+    }
 
     bool found;
     if (!HasProperty(cx, cx->global(), id, &found)) {
@@ -594,7 +596,9 @@ static WithEnvironmentObject* CreateExtraBindingsEnvironment(
     }
 
     id = unwrappedBindingKeys[i];
-    cx->recordRefToId(id);
+    if (!cx->wrapOrRecordRefToId(&id)) {
+      return nullptr;
+    }
     JS::Rooted<JS::Value> val(cx, unwrappedBindingValues[i]);
     if (!cx->compartment()->wrap(cx, &val) ||
         !NativeDefineDataProperty(cx, extraBindingsObj, id, val, 0)) {
@@ -1587,7 +1591,7 @@ static const CompilationStencil* DelazifyCanonicalScriptedFunctionImpl(
 
   const ScriptStencilExtra& extra = script.scriptExtra();
 
-#if defined(EARLY_BETA_OR_EARLIER) || defined(DEBUG)
+#if defined(NIGHTLY_BUILD) || defined(DEBUG)
   MOZ_ASSERT(!script.isEagerlyCompiledInInitial(),
              "Script is already compiled in initial stencil!");
   const ScriptStencil& data = script.scriptDataFromEnclosing();

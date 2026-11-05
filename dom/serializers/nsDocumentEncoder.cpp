@@ -549,7 +549,7 @@ nsDocumentEncoder::nsDocumentEncoder(
 }
 
 nsDocumentEncoder::nsDocumentEncoder()
-    : nsDocumentEncoder(MakeUnique<RangeNodeContext>()) {}
+    : nsDocumentEncoder(std::make_unique<RangeNodeContext>()) {}
 
 void nsDocumentEncoder::Initialize(
     bool aClearCachedSerializer,
@@ -1082,12 +1082,12 @@ nsDocumentEncoder::RangeSerializer::GetStartAndEndContentForRecursionLevel(
   const auto& inclusiveAncestorsOfEnd =
       mRangeBoundariesInclusiveAncestorsAndOffsets.mInclusiveAncestorsOfEnd;
   int32_t start = mStartRootIndex - aDepth;
-  if (start >= 0 && (uint32_t)start <= inclusiveAncestorsOfStart.Length()) {
+  if (start >= 0 && (uint32_t)start < inclusiveAncestorsOfStart.Length()) {
     result.mStart = inclusiveAncestorsOfStart[start];
   }
 
   int32_t end = mEndRootIndex - aDepth;
-  if (end >= 0 && (uint32_t)end <= inclusiveAncestorsOfEnd.Length()) {
+  if (end >= 0 && (uint32_t)end < inclusiveAncestorsOfEnd.Length()) {
     result.mEnd = inclusiveAncestorsOfEnd[end];
   }
 
@@ -1722,7 +1722,8 @@ class nsHTMLCopyEncoder final : public nsDocumentEncoder {
 };
 
 nsHTMLCopyEncoder::nsHTMLCopyEncoder()
-    : nsDocumentEncoder{MakeUnique<nsHTMLCopyEncoder::RangeNodeContext>()} {}
+    : nsDocumentEncoder{
+          std::make_unique<nsHTMLCopyEncoder::RangeNodeContext>()} {}
 
 nsHTMLCopyEncoder::~nsHTMLCopyEncoder() = default;
 

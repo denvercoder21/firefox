@@ -26,7 +26,8 @@ const DEFAULT_HORIZONTAL_VISIBILITY = "hide-on-close";
 // New panels that are ready to be introduced to new sidebar users should be added to this list;
 // ensure your feature flag is enabled at the same time you do this and that its the same value as
 // what you added to .
-const DEFAULT_LAUNCHER_TOOLS = "opentabs,bookmarks,aichat,history,syncedtabs";
+const DEFAULT_LAUNCHER_TOOLS =
+  "opentabs,bookmarks,aichat,history,syncedtabs,passwords";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
@@ -264,31 +265,6 @@ class SidebarManager extends EventTarget {
   }
 
   /**
-   * Has the new sidebar launcher already been visible and "used" in this profile?
-   */
-  get hasSidebarLauncherBeenVisible() {
-    // Its possible sidebar.revamp was enabled previously, but we can effectively reset if its currently false
-    if (!lazy.sidebarRevampEnabled) {
-      return false;
-    }
-    if (lazy.verticalTabsEnabled) {
-      return true;
-    }
-    // this pref tells us a sidebar panel has been opened, so it implies the launcher has
-    // been visible, but can't reliably indicate that the launcher has *not* been visible.
-    if (Services.prefs.getBoolPref("sidebar.new-sidebar.has-used", false)) {
-      return true;
-    }
-    // check if the launcher has ever been visible (in this session) in any of our open windows,
-    for (let w of lazy.BrowserWindowTracker.getOrderedWindows()) {
-      if (w.SidebarController.launcherEverVisible) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
    * Prepopulates default tools for new sidebar users and appends any new tools defined
    * on the sidebar.newTool.migration pref branch to the sidebar.main.tools pref.
    */
@@ -396,17 +372,20 @@ class SidebarManager extends EventTarget {
    * Provide a system-level "backup" state to be stored for those using "Never
    * remember history" or "Clear history when browser closes".
    *
-   * If it doesn't exist or isn't parsable, return `null`.
+   * If it doesn't exist, isn't parsable or isn't an object, the pref is reset
+   * and an empty state object is returned.
    *
    * @returns {object}
    */
   getBackupState() {
     try {
-      return JSON.parse(lazy.sidebarBackupState);
-    } catch (e) {
-      Services.prefs.clearUserPref(BACKUP_STATE_PREF);
-      return null;
-    }
+      const state = JSON.parse(lazy.sidebarBackupState);
+      if (state && typeof state == "object" && !Array.isArray(state)) {
+        return state;
+      }
+    } catch (e) {}
+    Services.prefs.clearUserPref(BACKUP_STATE_PREF);
+    return {};
   }
 
   /**

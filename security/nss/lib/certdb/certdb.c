@@ -177,6 +177,21 @@ SEC_ASN1_CHOOSER_IMPLEMENT(CERT_CertificateTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(SEC_SignedCertificateTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SequenceOfCertExtensionTemplate)
 
+const SEC_ASN1Template CERT_SignedDataTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+      0, NULL, sizeof(CERTSignedData) },
+    { SEC_ASN1_ANY,
+      offsetof(CERTSignedData, data) },
+    { SEC_ASN1_INLINE | SEC_ASN1_XTRN,
+      offsetof(CERTSignedData, signatureAlgorithm),
+      SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
+    { SEC_ASN1_BIT_STRING,
+      offsetof(CERTSignedData, signature) },
+    { 0 }
+};
+
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SignedDataTemplate)
+
 SECStatus
 CERT_KeyFromIssuerAndSN(PLArenaPool *arena, SECItem *issuer, SECItem *sn,
                         SECItem *key)
@@ -724,6 +739,14 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     int rv;
     int len;
     char *tmpname;
+    PRErrorCode savedErr;
+
+    /* Several of the steps below look for an optional extension and carry on
+     * when it is absent, leaving SEC_ERROR_EXTENSION_NOT_FOUND set behind them.
+     * A successful decode should not disturb the caller's error code, so save
+     * it here and restore it on the success path.
+     */
+    savedErr = PORT_GetError();
 
     /* make a new arena */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
@@ -829,6 +852,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     cert->pkcs11ID = CK_INVALID_HANDLE;
     cert->dbnickname = NULL;
 
+    PORT_SetError(savedErr);
     return (cert);
 
 loser:
@@ -3069,20 +3093,6 @@ cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert)
                                                              : SECFailure;
     PR_Unlock(gSubjKeyIDLock);
 done:
-    return rv;
-}
-
-SECStatus
-cert_RemoveSubjectKeyIDMapping(SECItem *subjKeyID)
-{
-    SECStatus rv;
-    if (!gSubjKeyIDLock)
-        return SECFailure;
-
-    PR_Lock(gSubjKeyIDLock);
-    rv = (PL_HashTableRemove(gSubjKeyIDHash, subjKeyID)) ? SECSuccess
-                                                         : SECFailure;
-    PR_Unlock(gSubjKeyIDLock);
     return rv;
 }
 

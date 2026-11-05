@@ -30,6 +30,7 @@
 #include "mozilla/TaskQueue.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ipc/UtilityMediaServiceParent.h"
+#include "mozilla/layers/ImageBridgeChild.h"
 #include "nsIXULRuntime.h"  // for BrowserTabsRemoteAutostart
 #include "nsPrintfCString.h"
 
@@ -455,6 +456,24 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
       aParams.mWrappers.contains(media::Wrapper::MediaChangeMonitor)) {
     return MediaChangeMonitor::Create(this, aParams);
   }
+
+  // If we were not given a compositor, share the decoded frames with the
+  // compositor via the image bridge. It is replaced when the compositor is
+  // reinitialized, so we get the current one each time we create a decoder,
+  // rather than storing it in the parameters kept by our callers.
+  if (!aParams.mKnowsCompositor &&
+      (XRE_IsContentProcess() || XRE_IsParentProcess())) {
+    RefPtr<layers::KnowsCompositor> knowsCompositor =
+        layers::ImageBridgeChild::GetSingleton();
+    // The image bridge only knows about the compositor once one has been
+    // created for a window, e.g. not in gtests.
+    if (knowsCompositor && knowsCompositor->GetCompositorBackendType() !=
+                               layers::LayersBackend::LAYERS_NONE) {
+      CreateDecoderParams params(aParams);
+      params.mKnowsCompositor = knowsCompositor;
+      return aPDM->AsyncCreateDecoder(params);
+    }
+  }
   return aPDM->AsyncCreateDecoder(aParams);
 }
 
@@ -646,7 +665,8 @@ void PDMFactory::CreateRddPDMs() {
   if (StaticPrefs::media_ffmpeg_enabled() &&
       StaticPrefs::media_rdd_ffmpeg_enabled()) {
     // Prefer system FFmpeg first only when Vulkan is wanted and
-    // PreferSystemFFmpegForVulkan() is true; otherwise leave ffvpx first.
+    // media.hardware-video-decoding-vulkan.prefer-system-ffmpeg is true;
+    // otherwise leave ffvpx first.
     const bool preferSystemForVulkan =
         gfx::gfxVars::CanUseVulkanHardwareVideoDecoding() &&
         FFmpegRuntimeLinker::PreferSystemFFmpegForVulkan();

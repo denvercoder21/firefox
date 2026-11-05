@@ -11,7 +11,6 @@ import errno
 import importlib.metadata
 import shlex
 import sys
-import types
 import uuid
 from collections.abc import Iterable
 from pathlib import Path
@@ -105,6 +104,7 @@ MACH_COMMANDS = {
     ),
     "devtools-compat-test": MachCommandReference("devtools/mach_commands.py"),
     "devtools-node-test": MachCommandReference("devtools/mach_commands.py"),
+    "devtools-update-compat-data": MachCommandReference("devtools/mach_commands.py"),
     "doc": MachCommandReference("tools/moztreedocs/mach_commands.py"),
     "doctor": MachCommandReference("python/mozbuild/mozbuild/mach_commands.py"),
     "environment": MachCommandReference("python/mozbuild/mozbuild/mach_commands.py"),
@@ -498,9 +498,7 @@ def load_commands_from_file(path: Union[str, Path], module_name=None):
     if module_name is None:
         # Ensure parent module is present otherwise we'll (likely) get
         # an error due to unknown parent.
-        if "mach.commands" not in sys.modules:
-            mod = types.ModuleType("mach.commands")
-            sys.modules["mach.commands"] = mod
+        importlib.import_module("mach.commands")
 
         module_name = f"mach.commands.{uuid.uuid4().hex}"
 

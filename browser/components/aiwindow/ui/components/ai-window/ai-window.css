@@ -3,6 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
+  --smart-page-empty-chat-message-font-color: light-dark(var(--color-violet-desaturated-50), var(--color-violet-desaturated-30));
+
+  @media (forced-colors) or (prefers-contrast) {
+    --smart-page-empty-chat-message-font-color: var(--text-color-deemphasized);
+  }
+}
+
+:host {
   height: 100vh;
   display: grid;
   grid-template-columns: 1fr;
@@ -19,8 +27,6 @@
 
 /* Fullpage: browser collapsed (0 height) until chat starts, showing prompts and smartbar */
 :host([mode="fullpage"]) {
-  /* stylelint-disable-next-line stylelint-plugin-mozilla/no-base-design-tokens */
-  box-shadow: inset 0 80px 80px -80px color-mix(in srgb, light-dark(var(--color-violet-70), var(--color-violet-50)) 60%, transparent);
   grid-template-areas:
     "browser"
     "."
@@ -36,6 +42,7 @@
    * minimum gap above the footer so it doesn't crowd short content. */
   grid-template-rows: 0 minmax(var(--space-xlarge), 1fr) auto auto auto auto auto auto minmax(var(--size-item-xlarge), 1fr) auto;
   align-content: stretch;
+  box-shadow: var(--smartwindow-main-box-shadow);
 }
 
 :host([mode="sidebar"]) {
@@ -91,6 +98,29 @@
   grid-area: browser;
   width: 100%;
   height: 100%;
+}
+
+.smartpage-chat-message {
+  grid-area: browser;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-large);
+  text-align: center;
+
+  img {
+    inline-size: var(--size-item-large);
+    block-size: var(--size-item-large);
+  }
+
+  p {
+    margin: 0;
+    max-inline-size: 270px;
+    color: var(--smart-page-empty-chat-message-font-color);
+    font-size: var(--font-size-root);
+    font-weight: 400;
+    line-height: 20px;
+  }
 }
 
 #smartbar-wrapper {
@@ -153,12 +183,13 @@
   accent-color: var(--smartwindow-assistant-accent-color-focus);
 }
 
-:host([mode="fullpage"]) #ai-window-smartbar {
-  top: 0;
+/* Keep the input from moving when the suggestions list opens. */
+#ai-window-smartbar[suggestions-position="bottom"] {
+  inset-block-start: 0;
 }
 
-:host([mode="sidebar"]) #ai-window-smartbar {
-  bottom: 0;
+#ai-window-smartbar[suggestions-position="top"] {
+  inset-block-end: 0;
 }
 
 #smartbar-slot {
@@ -183,7 +214,7 @@ smartwindow-prompts {
   padding-block: var(--space-small);
   padding-inline: var(--space-small) var(--space-large);
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
 }
 

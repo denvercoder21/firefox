@@ -640,10 +640,10 @@
 - name: StringToAtom
   shared: true
   transpile: true
-  custom_writer: true
   cost_estimate: 4
   args:
     str: StringId
+    result: StringId
 
 - name: BooleanToNumber
   shared: true
@@ -3963,7 +3963,7 @@
   transpile: true
   cost_estimate: 1
   args:
-    builderAddr: RawPointerField
+    hasBuilderAddr: RawPointerField
 
 #ifdef FUZZING_JS_FUZZILLI
 - name: FuzzilliHashResult

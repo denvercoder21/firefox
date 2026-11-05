@@ -19,7 +19,11 @@ transforms:
 # https://wiki.mozilla.org/Sheriffing/Job_Visibility_Policy
 
 task-defaults:
-    run-on-repo-type: [hg]
+    priority:
+        by-project:
+            autoland: high
+            mozilla-central: medium
+            default: null
     attributes:
         retrigger: true
     use-python:
@@ -255,6 +259,7 @@ tasks:
             - openh264
             # We don't need sw or nofis testing.
             - geckoview-isolated-process
+            - geckoview-java-media
         run-on-projects:
             by-variant:
                 openh264:
@@ -262,6 +267,10 @@ tasks:
                         linux2404-64/.*: ['autoland', 'mozilla-central']
                         default: []
                 geckoview-isolated-process:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
+                geckoview-java-media:
                     by-test-platform:
                         android-em.*/debug: built-projects
                         default: []
@@ -301,22 +310,43 @@ tasks:
                         - widevine-linux
                     default: []
         variants:
+            - eme-signed
             - eme-wmf
+            - geckoview-isolated-process
+            - geckoview-java-media
         run-on-projects:
             by-variant:
+                eme-signed: ['mozilla-central']
                 eme-wmf:
                     by-test-platform:
                         windows1.*-64.*: ['autoland', 'mozilla-central']
                         default: []
+                geckoview-isolated-process:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
+                geckoview-java-media:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
                 default:
                     by-test-platform:
-                        android-em.*/debug-isolated-process: []
                         .*-wayland.*: []
                         windows1.*: []
                         default: built-projects
         mozharness:
+            requires-signed-builds:
+                by-variant:
+                    eme-signed: true
+                    default: false
             chunked: true
             extra-options:
+                # By default, we do not allow non-local domains to be used by
+                # Firefox when testing. The EME WPT tests require access to the
+                # test licensing server (lic.staging.drmtoday.com) to decrypt
+                # the content used in the tests. Android and Windows also
+                # require access to platform specific services. Without this,
+                # most of the tests will fail.
                 by-test-platform:
                     android.*:
                         - --test-type=testharness
@@ -325,11 +355,24 @@ tasks:
                         - --no-update-status-on-crash
                         - --setpref=network.socket.allowed_nonlocal_domains='lic.staging.drmtoday.com,www.googleapis.com'
                     windows.*:
-                        - --test-type=testharness
-                        - --default-exclude
-                        - --tag=eme
-                        - --no-update-status-on-crash
-                        - --setpref=network.socket.allowed_nonlocal_domains='lic.staging.drmtoday.com,test.playready.microsoft.com'
+                        by-variant:
+                            eme-wmf:
+                                - --test-type=testharness
+                                - --default-exclude
+                                - --tag=eme
+                                - --no-update-status-on-crash
+                                - --setpref=network.socket.allowed_nonlocal_domains='lic.staging.drmtoday.com,test.playready.microsoft.com'
+                                - --setpref=media.eme.playready.enabled=true
+                                - --setpref=media.wmf.media-engine.enabled=2
+                                - --setpref=media.wmf.media-engine.bypass-gfx-blocklist=true
+                                - --setpref=media.eme.mfcdm.origin-filter.enabled=0
+                            default:
+                                - --test-type=testharness
+                                - --default-exclude
+                                - --tag=eme
+                                - --no-update-status-on-crash
+                                - --setpref=network.socket.allowed_nonlocal_domains='lic.staging.drmtoday.com'
+                                - --setpref=media.eme.playready.enabled=false
                     default:
                         - --test-type=testharness
                         - --default-exclude
@@ -345,16 +388,25 @@ tasks:
         chunks: dynamic
         default-chunks: 1
         max-run-time: 7200
-        # Runs in socket-process mode by default, no need for spi variants.
         # We don't *really* need to be running these in nofis either.
         # We do some things differently in private browsing mode though.
         # Running with a real OpenH264 plugin reflects release best.
         variants:
             - privatebrowsing
             - openh264
+            - geckoview-isolated-process
+            - geckoview-java-media
         run-on-projects:
             by-variant:
                 openh264: []
+                geckoview-isolated-process:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
+                geckoview-java-media:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
                 default: built-projects
         mozharness:
             chunked: true
@@ -395,17 +447,23 @@ tasks:
             - webrender-sw+no-fission
             - webrender-sw
             - draw-snapshot
+            - geckoview-isolated-process
         run-on-projects:
             by-variant:
+                geckoview-isolated-process:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
                 webrender-sw:
                     by-test-platform:
                         .*-32.*: []
+                        android-em.*/debug: built-projects
                         linux.*64(-qr)?/debug: built-projects
                         windows.*/debug: built-projects
                         default: []
                 webrender-sw+no-fission:
                     by-test-platform:
-                        android-em.*/debug: built-projects
+                        android-em.*/debug: ['mozilla-central']
                         linux2404-64/.*: ['mozilla-central']
                         linux2404-64-shippable/opt: ['mozilla-central']
                         linux2404-64-asan/opt: ['mozilla-central']
@@ -415,7 +473,7 @@ tasks:
                         linux2404-64/.*: ['mozilla-central']
                         linux2404-64-shippable/opt: ['mozilla-central']
                         linux2404-64-asan/opt: ['mozilla-central']
-                        android.*: built-projects
+                        android.*: ['mozilla-central']
                         default: []
                 draw-snapshot:
                     by-test-platform:
@@ -423,17 +481,20 @@ tasks:
                         default: []
                 default:
                     by-test-platform:
-                        android.*: []
                         .*-wayland.*: []
                         default: built-projects
         tier:
             by-variant:
+                webrender-sw+no-fission:
+                    by-test-platform:
+                        android.*: 2
+                        default: default
                 no-fission:
                     by-test-platform:
+                        android.*: 2
                         linux.*: 2
                         default: default
                 draw-snapshot: 2
-                geckoview-isolated-process: 2
                 default: default
         mozharness:
             extra-options:
@@ -491,6 +552,7 @@ tasks:
                 - --exclude-tag=webcodecs
                 - --exclude-tag=webrtc
                 - --timeout-multiplier=5.0
+                - --skip-upstream-tests-extraction
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
@@ -518,6 +580,7 @@ tasks:
                 - --skip-implementation-status=backlog
                 - --skip-implementation-status=not-implementing
                 - --timeout-multiplier=5.0
+                - --skip-upstream-tests-extraction
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
@@ -561,6 +624,7 @@ tasks:
                 - --skip-implementation-status=not-implementing
                 - --backlog
                 - --timeout-multiplier=5.0
+                - --skip-upstream-tests-extraction
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
@@ -590,6 +654,7 @@ tasks:
                 - --skip-implementation-status=not-implementing
                 - --backlog
                 - --timeout-multiplier=5.0
+                - --skip-upstream-tests-extraction
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
@@ -865,8 +930,13 @@ tasks:
             - no-fission
             - webrender-sw
             - webrender-sw+no-fission
+            - geckoview-isolated-process
         run-on-projects:
             by-variant:
+                geckoview-isolated-process:
+                    by-test-platform:
+                        android-em.*/debug: built-projects
+                        default: []
                 webrender-sw:
                     by-test-platform:
                         android-em.*/debug: built-projects
@@ -878,7 +948,7 @@ tasks:
                         default: []
                 webrender-sw+no-fission:
                     by-test-platform:
-                        android-em.*/debug: built-projects
+                        android-em.*/debug: ['mozilla-central']
                         linux2404-64/.*: ['mozilla-central']
                         linux2404-64-shippable/opt: ['mozilla-central']
                         linux2404-64-asan/opt: ['mozilla-central']
@@ -888,21 +958,20 @@ tasks:
                         linux2404-64/.*: ['mozilla-central']
                         linux2404-64-shippable/opt: ['mozilla-central']
                         linux2404-64-asan/opt: ['mozilla-central']
-                        android.*: built-projects
+                        android.*: ['mozilla-central']
                         default: []
-                default:
-                    by-test-platform:
-                        android-em.*/debug: built-projects
-                        android.*: []
-                        default: built-projects
+                default: built-projects
+
         tier:
             by-variant:
                 no-fission:
                     by-test-platform:
+                        android.*: 2
                         linux.*: 2
                         default: default
                 webrender-sw+no-fission:
                     by-test-platform:
+                        android.*: 2
                         linux.*: 2
                         default: default
                 default: default
@@ -932,8 +1001,13 @@ tasks:
             - no-fission
             - webrender-sw
             - webrender-sw+no-fission
+            - native-printer
         run-on-projects:
             by-variant:
+                native-printer:
+                    by-test-platform:
+                        windows.*-64.*/debug: built-projects
+                        default: []
                 webrender-sw:
                     by-test-platform:
                         android.*: []

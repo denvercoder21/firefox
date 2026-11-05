@@ -155,7 +155,12 @@ nsresult nsXMLContentSink::MaybePrettyPrint() {
     // Try to perform a microtask checkpoint; this avoids always breaking
     // pretty-printing if webextensions insert new content right after the
     // document loads.
-    nsAutoMicroTask mt;
+    nsAutoMicroTaskForDocument mt(mDocument);
+  }
+
+  if (mDocument->GetRootElement() != mDocElement) {
+    mPrettyPrintXML = false;
+    return NS_OK;
   }
 
   // Reenable the CSSLoader so that the prettyprinting stylesheets can load
@@ -513,7 +518,7 @@ nsresult nsXMLContentSink::CreateElement(
       HasCustomElementRegistryAttr(aAtts);
 
   // Step 7: Look up a custom element definition.
-  CustomElementDefinition* customElementDefinition = nullptr;
+  RefPtr<CustomElementDefinition> customElementDefinition;
   nsAtom* nameAtom = ni->NameAtom();
   if (!hasCustomElementRegistryAttr && mDocument &&
       !mDocument->IsLoadedAsData() && isXHTMLOrXUL &&
@@ -527,7 +532,7 @@ nsresult nsXMLContentSink::CreateElement(
 
   if (customElementDefinition) {
     {
-      nsAutoMicroTask mt;
+      nsAutoMicroTaskForDocument mt(mDocument);
     }
 
     Maybe<AutoCEReaction> autoCEReaction;
@@ -596,7 +601,7 @@ nsresult nsXMLContentSink::CreateElement(
 nsresult nsXMLContentSink::CloseElement(nsIContent* aContent) {
   NS_ASSERTION(aContent, "missing element to close");
 
-  mozilla::dom::NodeInfo* nodeInfo = aContent->NodeInfo();
+  RefPtr<mozilla::dom::NodeInfo> nodeInfo = aContent->NodeInfo();
 
   // Some HTML nodes need DoneAddingChildren() called to initialize
   // properly (eg form state restoration).
@@ -632,7 +637,7 @@ nsresult nsXMLContentSink::CloseElement(nsIContent* aContent) {
     // When the element's end tag is subsequently parsed, the user agent must
     // perform a microtask checkpoint, and then prepare the script element.
     {
-      nsAutoMicroTask mt;
+      nsAutoMicroTaskForDocument mt(mDocument);
     }
 
     // Now tell the script that it's ready to go. This may execute the script
@@ -721,16 +726,6 @@ nsresult nsXMLContentSink::ProcessStyleLinkFromHeader(
   if (cmd.EqualsASCII(kLoadAsData))
     return NS_OK;  // Do not load stylesheets when loading as data
 
-  bool wasXSLT;
-  nsresult rv = MaybeProcessXSLTLink(nullptr, aHref, aAlternate, aType, aType,
-                                     aMedia, aReferrerPolicy, &wasXSLT);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (wasXSLT) {
-    // We're done here.
-    return NS_OK;
-  }
-
-  // Otherwise fall through to nsContentSink to handle CSS Link headers.
   return nsContentSink::ProcessStyleLinkFromHeader(
       aHref, aAlternate, aTitle, aIntegrity, aType, aMedia, aReferrerPolicy,
       aFetchPriority);
@@ -739,16 +734,12 @@ nsresult nsXMLContentSink::ProcessStyleLinkFromHeader(
 nsresult nsXMLContentSink::MaybeProcessXSLTLink(
     ProcessingInstruction* aProcessingInstruction, const nsAString& aHref,
     bool aAlternate, const nsAString& aTitle, const nsAString& aType,
-    const nsAString& aMedia, const nsAString& aReferrerPolicy, bool* aWasXSLT) {
+    const nsAString& aMedia, const nsAString& aReferrerPolicy) {
   bool wasXSLTType = aType.LowerCaseEqualsLiteral(TEXT_XSL) ||
                      aType.LowerCaseEqualsLiteral(APPLICATION_XSLT_XML) ||
                      aType.LowerCaseEqualsLiteral(TEXT_XML) ||
                      aType.LowerCaseEqualsLiteral(APPLICATION_XML);
   bool wasXSLT = StaticPrefs::dom_xslt_enabled() && wasXSLTType;
-
-  if (aWasXSLT) {
-    *aWasXSLT = wasXSLT;
-  }
 
   if (aAlternate) {
     // don't load alternate XSLT
@@ -1378,6 +1369,8 @@ nsresult nsXMLContentSink::AddAttributes(const char16_t** aAtts,
                                          Element* aContent) {
   // Add tag attributes to the content attributes
   RefPtr<nsAtom> prefix, localName;
+  // Custom element constructors might have set our attributes already.
+  const bool mightHaveAttrs = aContent->HasCustomElementData();
   while (*aAtts) {
     int32_t nameSpaceID;
     nsContentUtils::SplitExpatName(aAtts[0], getter_AddRefs(prefix),
@@ -1385,7 +1378,8 @@ nsresult nsXMLContentSink::AddAttributes(const char16_t** aAtts,
 
     // Add attribute to content
     aContent->SetAttr(nameSpaceID, localName, prefix,
-                      nsDependentString(aAtts[1]), false);
+                      nsDependentString(aAtts[1]), false,
+                      IsKnownNewAttr(!mightHaveAttrs));
     aAtts += 2;
   }
 

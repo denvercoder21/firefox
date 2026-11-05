@@ -80,7 +80,7 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
-import mozilla.components.concept.engine.ipprotection.IPProtectionHandler.StateInfo
+import mozilla.components.concept.engine.ipprotection.ProxyState
 import mozilla.components.concept.engine.ipprotection.ServiceState
 import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.concept.engine.prompt.ShareData
@@ -91,6 +91,8 @@ import mozilla.components.feature.ipprotection.store.IPProtectionStore
 import mozilla.components.feature.ipprotection.store.state.Authorized
 import mozilla.components.feature.ipprotection.store.state.IPProtectionState
 import mozilla.components.feature.ipprotection.store.state.ProxyActivation
+import mozilla.components.feature.listentopage.settings.ListenEnabledState
+import mozilla.components.feature.listentopage.settings.ListenSettings
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.feature.summarize.R as summariesR
@@ -390,6 +392,23 @@ class BrowserToolbarMiddlewareTest {
         }
 
     @Test
+    fun `GIVEN a percent encoded URL WHEN the page origin is set THEN show it losslessly decoded`() =
+        runTest(testDispatcher) {
+            val tab = createTab("https://mozilla.com/%D1%82%D0%B5%D1%81%D1%82%20file?q=hello%20world")
+            val browserStore = BrowserStore(BrowserState(tabs = listOf(tab), selectedTabId = tab.id))
+            val toolbarStore = buildStore(buildMiddleware(browserStore = browserStore))
+
+            assertEquals(
+                "mozilla.com/тест%20file?q=hello%20world",
+                toolbarStore.state.displayState.pageOrigin.url?.toString(),
+            )
+            assertEquals(
+                "https://mozilla.com/%D1%82%D0%B5%D1%81%D1%82%20file?q=hello%20world",
+                browserStore.state.tabs.first().content.url,
+            )
+        }
+
+    @Test
     fun `GIVEN narrow window WHEN changing to wide window THEN keep browser end actions`() =
         runTest(testDispatcher) {
             val appStore = AppStore(initialState = AppState(orientation = Portrait))
@@ -560,7 +579,7 @@ class BrowserToolbarMiddlewareTest {
 
         verify {
             navController.navigate(
-                BrowserFragmentDirections.actionGlobalMenuDialogFragment(accesspoint = MenuAccessPoint.Browser),
+                BrowserFragmentDirections.actionBrowserFragmentToMenuFragment(accessPoint = MenuAccessPoint.Browser),
                 null,
             )
         }
@@ -1380,6 +1399,7 @@ class BrowserToolbarMiddlewareTest {
             settings.toolbarSimpleShortcutKey = ShortcutType.SHARE.value
             val browserScreenStore = buildBrowserScreenStore()
             val captureMiddleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+            // A content:// tab is only treated as PDF-shareable once `content.isPdf` is set.
             val currentTab = createTab("content://test", private = false)
             val browserStore =
                 BrowserStore(
@@ -1390,11 +1410,12 @@ class BrowserToolbarMiddlewareTest {
                         ),
                     middleware = listOf(captureMiddleware),
                 )
+            val shareSheetLauncher = mockk<ShareSheetLauncher>(relaxed = true)
             val middleware =
                 buildMiddleware(
                     browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
-                    shareUseCases = ShareUseCases(browserStore, mockk<ShareSheetLauncher>(relaxed = true), settings),
+                    shareUseCases = ShareUseCases(browserStore, shareSheetLauncher, settings),
                     isWideScreen = { true },
                 )
             val toolbarStore = buildStore(middleware)
@@ -1405,9 +1426,15 @@ class BrowserToolbarMiddlewareTest {
 
             toolbarStore.dispatch(shareButton.onClick as BrowserToolbarEvent)
             testDispatcher.scheduler.advanceUntilIdle()
-            captureMiddleware.assertLastAction(ShareResourceAction.AddShareAction::class) {
-                assertEquals(currentTab.id, it.tabId)
-                assertEquals(ShareResourceState.LocalResource(currentTab.content.url, INTENT_TYPE_PDF), it.resource)
+            captureMiddleware.assertNotDispatched(ShareResourceAction.AddShareAction::class)
+            verify {
+                shareSheetLauncher.showSystemShareSheet(
+                    id = currentTab.id,
+                    url = currentTab.content.url,
+                    title = currentTab.content.title,
+                    isPrivate = currentTab.content.private,
+                    isCustomTab = false,
+                )
             }
         }
 
@@ -2619,14 +2646,8 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(1, toolbarPageActions.size)
         assertIs<ActionButtonRes>(toolbarPageActions[0])
 
-        ipProtectionStore.dispatch(
-            IPProtectionAction.EngineStateChanged(
-                StateInfo(
-                    serviceState = ServiceState.Ready,
-                    proxyState = StateInfo.PROXY_STATE_ACTIVE,
-                )
-            )
-        )
+        ipProtectionStore.dispatch(IPProtectionAction.ServiceAction.ServiceStateChanged(ServiceState.Ready))
+        ipProtectionStore.dispatch(IPProtectionAction.ProxyAction.ProxyStateChanged(ProxyState.ACTIVE))
         testDispatcher.scheduler.advanceUntilIdle()
 
         toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
@@ -2715,14 +2736,8 @@ class BrowserToolbarMiddlewareTest {
             assertEquals(1, toolbarPageActions.size)
             assertIs<AnimatedPillActionRes>(toolbarPageActions[0])
 
-            ipProtectionStore.dispatch(
-                IPProtectionAction.EngineStateChanged(
-                    StateInfo(
-                        serviceState = ServiceState.Ready,
-                        proxyState = StateInfo.PROXY_STATE_READY,
-                    )
-                )
-            )
+            ipProtectionStore.dispatch(IPProtectionAction.ServiceAction.ServiceStateChanged(ServiceState.Ready))
+            ipProtectionStore.dispatch(IPProtectionAction.ProxyAction.ProxyStateChanged(ProxyState.READY))
             testDispatcher.scheduler.advanceUntilIdle()
 
             toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
@@ -2765,20 +2780,14 @@ class BrowserToolbarMiddlewareTest {
                 )
             val toolbarStore = buildStore(middleware)
 
-            ipProtectionStore.dispatch(
-                IPProtectionAction.EngineStateChanged(
-                    StateInfo(
-                        serviceState = ServiceState.Ready,
-                        proxyState = StateInfo.PROXY_STATE_READY,
-                    )
-                )
-            )
+            ipProtectionStore.dispatch(IPProtectionAction.ServiceAction.ServiceStateChanged(ServiceState.Ready))
+            ipProtectionStore.dispatch(IPProtectionAction.ProxyAction.ProxyStateChanged(ProxyState.READY))
             testDispatcher.scheduler.advanceUntilIdle()
             assertIs<AnimatedPillActionRes>(toolbarStore.state.displayState.pageActionsStart[0])
 
             // Simulates the pill's onAnimationFinished callback, normally invoked by Compose once
             // the collapse animation has actually finished on screen.
-            ipProtectionStore.dispatch(IPProtectionAction.ProxyActivationShown)
+            ipProtectionStore.dispatch(IPProtectionAction.ActivationAction.ProxyActivationShown)
             testDispatcher.scheduler.advanceUntilIdle()
 
             val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
@@ -3019,7 +3028,7 @@ class BrowserToolbarMiddlewareTest {
         val middleware = buildMiddleware()
         val result = middleware.buildAction(toolbarAction = ToolbarAction.Menu) as ActionButtonRes
 
-        assertEquals(iconsR.drawable.mozac_ic_ellipsis_vertical_24, result.drawableResId)
+        assertEquals(iconsR.drawable.mozac_ic_more_vertical_round_24, result.drawableResId)
         assertEquals(R.string.content_description_menu, result.contentDescription)
         assertEquals(ActionButton.State.DEFAULT, result.state)
         assertEquals(MenuClicked(Source.Unknown), result.onClick)
@@ -3035,7 +3044,6 @@ class BrowserToolbarMiddlewareTest {
             }
 
         every { browserScreenState.readerModeStatus } returns readerModeStatus
-        settings.listenToPageFeatureFlagEnabled = false
         val middleware = buildMiddleware()
 
         val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
@@ -3047,7 +3055,48 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN listen to page enabled WHEN building inactive ReaderMode action THEN uses the audio icon`() {
+    fun `GIVEN listen to page enabled WHEN building inactive ReaderMode action THEN uses the audio icon and description`() {
+        val readerModeStatus: ReaderModeStatus =
+            mockk(relaxed = true) {
+                every { isAvailable } returns true
+                every { isActive } returns false
+            }
+
+        every { browserScreenState.readerModeStatus } returns readerModeStatus
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Enabled)
+            )
+
+        val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
+
+        assertEquals(iconsR.drawable.mozac_ic_reader_view_headphones_24, result.drawableResId)
+        assertEquals(R.string.browser_menu_read_or_listen, result.contentDescription)
+        assertEquals(ActionButton.State.DEFAULT, result.state)
+        assertEquals(ReaderModeClicked(false), result.onClick)
+    }
+
+    @Test
+    fun `GIVEN listen to page blocked in AI Controls WHEN building inactive ReaderMode action THEN uses the default icon`() {
+        val readerModeStatus: ReaderModeStatus =
+            mockk(relaxed = true) {
+                every { isAvailable } returns true
+                every { isActive } returns false
+            }
+
+        every { browserScreenState.readerModeStatus } returns readerModeStatus
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Disabled)
+            )
+
+        val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
+
+        assertEquals(iconsR.drawable.mozac_ic_reader_view_24, result.drawableResId)
+    }
+
+    @Test
+    fun `GIVEN listen to page blocked in AI Controls WHEN building inactive ReaderMode action THEN uses the reader mode description`() {
         val readerModeStatus: ReaderModeStatus =
             mockk(relaxed = true) {
                 every { isAvailable } returns true
@@ -3056,14 +3105,33 @@ class BrowserToolbarMiddlewareTest {
 
         every { browserScreenState.readerModeStatus } returns readerModeStatus
         settings.listenToPageFeatureFlagEnabled = true
-        val middleware = buildMiddleware()
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Disabled)
+            )
 
         val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
 
-        assertEquals(iconsR.drawable.mozac_ic_reader_view_audio_24, result.drawableResId)
         assertEquals(R.string.browser_menu_read, result.contentDescription)
-        assertEquals(ActionButton.State.DEFAULT, result.state)
-        assertEquals(ReaderModeClicked(false), result.onClick)
+    }
+
+    @Test
+    fun `GIVEN listen to page settings not loaded WHEN building ReaderMode action THEN uses the default icon`() {
+        val readerModeStatus: ReaderModeStatus =
+            mockk(relaxed = true) {
+                every { isAvailable } returns true
+                every { isActive } returns false
+            }
+
+        every { browserScreenState.readerModeStatus } returns readerModeStatus
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Loading)
+            )
+
+        val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
+
+        assertEquals(iconsR.drawable.mozac_ic_reader_view_24, result.drawableResId)
     }
 
     @Test
@@ -3075,7 +3143,6 @@ class BrowserToolbarMiddlewareTest {
             }
 
         every { browserScreenState.readerModeStatus } returns readerModeStatus
-        settings.listenToPageFeatureFlagEnabled = false
         val middleware = buildMiddleware()
 
         val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
@@ -3095,15 +3162,36 @@ class BrowserToolbarMiddlewareTest {
             }
 
         every { browserScreenState.readerModeStatus } returns readerModeStatus
-        settings.listenToPageFeatureFlagEnabled = true
-        val middleware = buildMiddleware()
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Enabled)
+            )
 
         val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
 
-        assertEquals(iconsR.drawable.mozac_ic_reader_view_audio_fill_24, result.drawableResId)
+        assertEquals(iconsR.drawable.mozac_ic_reader_view_headphones_fill_24, result.drawableResId)
         assertEquals(R.string.browser_menu_read_close, result.contentDescription)
         assertEquals(ActionButton.State.ACTIVE, result.state)
         assertEquals(ReaderModeClicked(true), result.onClick)
+    }
+
+    @Test
+    fun `GIVEN listen to page blocked in AI Controls WHEN building active ReaderMode action THEN uses the default icon`() {
+        val readerModeStatus: ReaderModeStatus =
+            mockk(relaxed = true) {
+                every { isAvailable } returns true
+                every { isActive } returns true
+            }
+
+        every { browserScreenState.readerModeStatus } returns readerModeStatus
+        val middleware =
+            buildMiddleware(
+                listenSettings = ListenSettings.inMemory(available = true, enabled = ListenEnabledState.Disabled)
+            )
+
+        val result = middleware.buildAction(toolbarAction = ToolbarAction.ReaderMode) as ActionButtonRes
+
+        assertEquals(iconsR.drawable.mozac_ic_reader_view_fill_24, result.drawableResId)
     }
 
     @Test
@@ -4394,7 +4482,7 @@ class BrowserToolbarMiddlewareTest {
         source: Source = Source.AddressBar.BrowserEnd,
     ) =
         ActionButtonRes(
-            drawableResId = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
+            drawableResId = iconsR.drawable.mozac_ic_more_vertical_round_24,
             contentDescription = R.string.content_description_menu,
             highlighted = highlighted,
             onClick = MenuClicked(source),
@@ -4457,6 +4545,7 @@ class BrowserToolbarMiddlewareTest {
         settings: Settings = this.settings,
         summarizationSettingsCache: SummarizationFeatureDiscoveryConfiguration = this.summarizationFeatureSettings,
         translationsFeatureSettings: TranslationsEnabledSettings = this.translationsFeatureSettings,
+        listenSettings: ListenSettings = ListenSettings.inMemory(available = false),
         navController: NavController = this.navController,
         summarizationNavigator: SummarizationNavigator = this.summarizationNavigator,
         browsingModeManager: BrowsingModeManager = this.browsingModeManager,
@@ -4484,6 +4573,7 @@ class BrowserToolbarMiddlewareTest {
             settings = settings,
             summarizationFeatureSettings = summarizationSettingsCache,
             translationsFeatureSettings = translationsFeatureSettings,
+            listenSettings = listenSettings,
             navController = navController,
             summarizationNavigator = summarizationNavigator,
             browsingModeManager = browsingModeManager,

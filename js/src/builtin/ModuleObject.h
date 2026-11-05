@@ -218,6 +218,8 @@ class RequestedModule {
   const JS::ColumnNumberOneOrigin columnNumber_;
 
  public:
+  static constexpr uint32_t WasmDefaultLineNumber = 1;
+
   RequestedModule(Handle<ModuleRequestObject*> moduleRequest,
                   uint32_t lineNumber, JS::ColumnNumberOneOrigin columnNumber);
   ModuleRequestObject* moduleRequest() const { return moduleRequest_; }
@@ -441,9 +443,28 @@ class AsyncEvaluationOrder {
 //
 // TODO:
 // Bug 1968874 : Implement [[LoadedModules]] in Realm Records and Script Records
-using LoadedModuleMap =
-    GCHashMap<HeapPtr<JSObject*>, HeapPtr<ModuleObject*>,
-              StableCellHasher<HeapPtr<JSObject*>>, SystemAllocPolicy>;
+struct ModuleRequestHasher {
+  using Key = HeapPtr<JSObject*>;
+  using Lookup = JSObject*;
+
+  static HashNumber hash(const Lookup& l) {
+    auto& request = l->as<ModuleRequestObject>();
+    return mozilla::AddToHash(request.specifier()->hash(),
+                              static_cast<uint32_t>(request.moduleType()),
+                              static_cast<uint32_t>(request.phase()));
+  }
+
+  // https://tc39.es/ecma262/#sec-ModuleRequestsEqual
+  static bool match(const Key& k, const Lookup& l) {
+    auto& a = k->as<ModuleRequestObject>();
+    auto& b = l->as<ModuleRequestObject>();
+    return a.specifier() == b.specifier() && a.moduleType() == b.moduleType() &&
+           a.phase() == b.phase();
+  }
+};
+
+using LoadedModuleMap = GCHashMap<HeapPtr<JSObject*>, HeapPtr<ModuleObject*>,
+                                  ModuleRequestHasher, SystemAllocPolicy>;
 
 // Currently, the ModuleObject class is used to represent both the Source Text
 // Module Record and the Synthetic Module Record. Ideally, this is something
@@ -462,6 +483,9 @@ class ModuleObject : public NativeObject {
     PreloadSlotIndex,
 #endif
     ModuleSourceSlotIndex,
+#ifdef NIGHTLY_BUILD
+    WasmInstanceSlotIndex,
+#endif
     SlotCount
   };
 
@@ -481,9 +505,14 @@ class ModuleObject : public NativeObject {
 #ifdef DEBUG
   JS_DEFINE_TYPED_SLOT(PreloadSlotIndex, PRELOAD_SLOT, Boolean, Undefined);
 #endif
-  // Module Source object for source phase imports. Otherwise `undefined`.
+  // Module Source object if present. Otherwise `undefined`.
   JS_DEFINE_TYPED_SLOT(ModuleSourceSlotIndex, MODULE_SOURCE_SLOT, Object,
                        Undefined);
+#ifdef NIGHTLY_BUILD
+  // WebAssembly.Instance of an evaluated wasm module. Otherwise `undefined`.
+  JS_DEFINE_TYPED_SLOT(WasmInstanceSlotIndex, WASM_INSTANCE_SLOT, Object,
+                       Undefined);
+#endif
   static constexpr uint32_t SLOT_COUNT = SlotCount;
 
   static const JSClass class_;
@@ -523,7 +552,11 @@ class ModuleObject : public NativeObject {
   ModuleNamespaceObject* maybeDeferredNamespace() const;
   void setDeferredNamespace(Handle<ModuleNamespaceObject*> ns);
   JSObject* moduleSource() const;
-  bool isSourcePhaseModule() const { return moduleSource() != nullptr; }
+  bool isWasmModule() const;
+#ifdef NIGHTLY_BUILD
+  JSObject* wasmInstance() const;
+  void setWasmInstance(JSObject* instance);
+#endif
   ModuleStatus status() const;
   mozilla::Maybe<uint32_t> maybeDfsAncestorIndex() const;
   uint32_t dfsAncestorIndex() const;
@@ -594,7 +627,11 @@ class ModuleObject : public NativeObject {
   static bool createSyntheticEnvironment(JSContext* cx,
                                          Handle<ModuleObject*> self,
                                          JS::HandleVector<Value> values);
-  static bool createWasmEnvironment(JSContext* cx, Handle<ModuleObject*> self);
+  static bool createWasmEnvironment(JSContext* cx, Handle<ModuleObject*> self,
+                                    Handle<ExportNameVector> exportNames);
+
+  static void initWasmExportBindings(JSContext* cx, Handle<ModuleObject*> self,
+                                     JS::HandleVector<Value> values);
 
   void initAsyncSlots(JSContext* cx, bool hasTopLevelAwait,
                       Handle<ListObject*> asyncParentModules);
@@ -686,6 +723,8 @@ JSObject* GetOrCreateModuleMetaObject(JSContext* cx, HandleObject module);
 JSObject* StartDynamicModuleImport(JSContext* cx, HandleScript script,
                                    HandleValue specifier, HandleValue options,
                                    ImportPhase phase);
+
+void ReportUninitializedModuleBinding(JSContext* cx, HandleId id);
 }  // namespace js
 
 template <>

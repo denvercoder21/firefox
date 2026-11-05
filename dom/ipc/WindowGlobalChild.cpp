@@ -315,8 +315,10 @@ already_AddRefed<WindowGlobalChild> WindowGlobalChild::Create(
 
     ManagedEndpoint<PWindowGlobalParent> endpoint =
         ipChild->OpenPWindowGlobalEndpoint(wgc);
-    ipParent->BindPWindowGlobalEndpoint(std::move(endpoint),
-                                        wgc->WindowContext()->Canonical());
+    if (!ipParent->BindPWindowGlobalEndpoint(
+            std::move(endpoint), wgc->WindowContext()->Canonical())) {
+      return nullptr;
+    }
   } else {
     RefPtr<BrowserChild> browserChild =
         BrowserChild::GetFrom(static_cast<mozIDOMWindow*>(aWindow));
@@ -506,8 +508,8 @@ bool WindowGlobalChild::CanCollectDocumentLanguageMetadata() {
     return false;
   }
 
-  return uri->SchemeIs("https") || uri->SchemeIs("http") ||
-         uri->SchemeIs("file") || uri->SchemeIs("moz-extension");
+  return net::SchemeIsHttpOrHttps(uri) || uri->SchemeIs("file") ||
+         uri->SchemeIs("moz-extension");
 }
 
 Maybe<DocumentLanguageMetadata> WindowGlobalChild::GetDocumentLanguageMetadata(
@@ -1107,6 +1109,7 @@ IPCResult WindowGlobalChild::RecvGetModelContextTools(
 IPCResult WindowGlobalChild::RecvGetContentMetrics(
     GetContentMetricsResolver&& aResolver) {
   CSSSize size;
+  CSSPoint scrollOffset;
   float devicePixelRatio = 1.0f;
 
   if (IsCurrentGlobal()) {
@@ -1114,6 +1117,7 @@ IPCResult WindowGlobalChild::RecvGetContentMetrics(
       if (RefPtr<Document> doc = win->GetExtantDoc()) {
         if (RefPtr<Element> root = doc->GetDocumentElement()) {
           size = CSSPixel::FromAppUnits(root->GetScrollSize());
+          scrollOffset = CSSPixel::FromAppUnits(root->GetScrollOrigin());
         }
       }
 
@@ -1124,7 +1128,7 @@ IPCResult WindowGlobalChild::RecvGetContentMetrics(
       }
     }
   }
-  aResolver(std::make_tuple(size, devicePixelRatio));
+  aResolver(std::make_tuple(size, devicePixelRatio, scrollOffset));
   return IPC_OK();
 }
 

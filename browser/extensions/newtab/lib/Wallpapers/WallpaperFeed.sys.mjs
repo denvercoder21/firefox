@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/** @import {Store} from "resource://newtab/lib/Store.sys.mjs" */
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -69,6 +71,9 @@ const PREF_WALLPAPERS_USER_ENABLED_MIGRATED =
 const WALLPAPER_FILE_LOCK = "newtab-wallpaper-file";
 
 export class WallpaperFeed {
+  /** @type {Store} */
+  store = null;
+
   constructor() {
     this.loaded = false;
     // Applying moves several prefs, and this feed reacts to two of them. Held
@@ -97,6 +102,8 @@ export class WallpaperFeed {
   /**
    * This thin wrapper around global.fetch makes it easier for us to write
    * automated tests that simulate responses from this fetch.
+   *
+   * @param {Parameters<typeof fetch>} args
    */
   fetch(...args) {
     return fetch(...args);
@@ -112,6 +119,8 @@ export class WallpaperFeed {
   /**
    * This thin wrapper around lazy.RemoteSettings makes it easier for us to write
    * automated tests that simulate responses from this fetch.
+   *
+   * @param {Parameters<typeof lazy.RemoteSettings>} args
    */
   RemoteSettings(...args) {
     return lazy.RemoteSettings(...args);
@@ -119,6 +128,8 @@ export class WallpaperFeed {
 
   /**
    * This thin wrapper around IOUtils.write lets tests simulate write failures.
+   *
+   * @param {Parameters<typeof IOUtils.write>} args
    */
   writeFile(...args) {
     return IOUtils.write(...args);
@@ -127,6 +138,8 @@ export class WallpaperFeed {
   /**
    * This thin wrapper around IOUtils.writeJSON lets tests simulate a failure
    * writing an image's details.
+   *
+   * @param {Parameters<typeof IOUtils.writeJSON>} args
    */
   writeJSON(...args) {
     return IOUtils.writeJSON(...args);
@@ -135,6 +148,8 @@ export class WallpaperFeed {
   /**
    * This thin wrapper around IOUtils.remove lets tests interleave with a
    * deletion that is already in flight.
+   *
+   * @param {Parameters<typeof IOUtils.remove>} args
    */
   removeFile(...args) {
     return IOUtils.remove(...args);
@@ -142,6 +157,8 @@ export class WallpaperFeed {
 
   /**
    * Thin wrapper around IOUtils.copy, so tests can make a copy fail.
+   *
+   * @param {Parameters<typeof IOUtils.copy>} args
    */
   copyFile(...args) {
     return IOUtils.copy(...args);
@@ -920,6 +937,14 @@ export class WallpaperFeed {
         PREF_WALLPAPERS_CUSTOM_WALLPAPER_UUID,
         filename
       );
+      // Before the prefs below, which reach the page as they change. Turning
+      // wallpapers back on would otherwise paint the URL it still holds.
+      this.store.dispatch(
+        ac.BroadcastToContent({
+          type: at.WALLPAPERS_CUSTOM_SET,
+          data: getWallpaperURL(filename, this.libraryEnabled),
+        })
+      );
       this.store.dispatch(
         ac.SetPref("newtabWallpapers.customWallpaper.theme", parsed.theme)
       );
@@ -939,9 +964,6 @@ export class WallpaperFeed {
     } finally {
       this.applyingWallpaper--;
     }
-
-    // Every pref agrees now, so this is the one picture content is told about.
-    this.broadcastAppliedWallpaper();
 
     await this.#sweepWallpaperDirectory();
 

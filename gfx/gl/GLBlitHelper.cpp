@@ -20,6 +20,7 @@
 #include "mozilla/gfx/BuildConstants.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/CompositeProcessFencesHolderMap.h"
 #include "mozilla/layers/GpuFence.h"
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -469,6 +470,8 @@ class ScopedDrawBlitState final {
 
   realGLboolean colorMask[4];
   GLint viewport[4];
+  GLint clipOrigin = LOCAL_GL_LOWER_LEFT;
+  GLint clipDepthMode = LOCAL_GL_NEGATIVE_ONE_TO_ONE;
 
  public:
   ScopedDrawBlitState(GLContext* const gl, const gfx::IntSize& fbSize)
@@ -482,6 +485,12 @@ class ScopedDrawBlitState final {
         sampleCover(mGL.PushEnabled(LOCAL_GL_SAMPLE_COVERAGE, false)),
         scissor(mGL.PushEnabled(LOCAL_GL_SCISSOR_TEST, false)),
         stencil(mGL.PushEnabled(LOCAL_GL_STENCIL_TEST, false)) {
+    if (mGL.IsSupported(GLFeature::clip_control)) {
+      mGL.fGetIntegerv(LOCAL_GL_CLIP_ORIGIN, &clipOrigin);
+      mGL.fGetIntegerv(LOCAL_GL_CLIP_DEPTH_MODE, &clipDepthMode);
+      mGL.fClipControl(LOCAL_GL_LOWER_LEFT, LOCAL_GL_NEGATIVE_ONE_TO_ONE);
+    }
+
     if (mGL.IsSupported(GLFeature::transform_feedback2)) {
       // Technically transform_feedback2 requires transform_feedback, which
       // actually adds RASTERIZER_DISCARD.
@@ -511,6 +520,9 @@ class ScopedDrawBlitState final {
     mGL.SetEnabled(LOCAL_GL_SAMPLE_COVERAGE, sampleCover);
     mGL.SetEnabled(LOCAL_GL_SCISSOR_TEST, scissor);
     mGL.SetEnabled(LOCAL_GL_STENCIL_TEST, stencil);
+    if (mGL.IsSupported(GLFeature::clip_control)) {
+      mGL.fClipControl(clipOrigin, clipDepthMode);
+    }
     if (rasterizerDiscard) {
       mGL.SetEnabled(LOCAL_GL_RASTERIZER_DISCARD, rasterizerDiscard.value());
     }
@@ -1077,7 +1089,9 @@ bool GLBlitHelper::Blit(layers::AndroidHardwareBuffer* const buffer,
   if (fenceFd) {
     const EGLint attribs[] = {
         LOCAL_EGL_SYNC_NATIVE_FENCE_FD_ANDROID,
-        fenceFd.get(),
+        // eglCreateSyncKHR takes ownership of the fd even on failure.
+        // Release it here to prevent the caller from closing it again.
+        fenceFd.release(),
         LOCAL_EGL_NONE,
     };
 
@@ -1088,9 +1102,6 @@ bool GLBlitHelper::Blit(layers::AndroidHardwareBuffer* const buffer,
           << "GLBlitHelper::Blit: Failed to create EGLSync from acquire fence";
       return false;
     }
-
-    // EGL owns the fd after a successful eglCreateSyncKHR().
-    (void)fenceFd.release();
 
     if (egl->IsExtensionSupported(EGLExtension::KHR_wait_sync)) {
       egl->fWaitSync(sync, 0);
@@ -1172,6 +1183,13 @@ bool GLBlitHelper::Blit(const java::GeckoSurfaceTexture::Ref& surfaceTexture,
                         const gfx::IntRect& destRect,
                         const OriginPos destOrigin, const gfx::IntSize& fbSize,
                         Maybe<gfxAlphaType> convertAlpha) const {
+  MOZ_ASSERT(!gfx::gfxVars::ForceAImageReaderAndroid());
+
+  if (gfx::gfxVars::ForceAImageReaderAndroid()) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return false;
+  }
+
   if (!surfaceTexture) {
     return false;
   }
@@ -1266,6 +1284,16 @@ bool GLBlitHelper::BlitPlanarYCbCr(const PlanarYCbCrData& yuvData,
                                    const OriginPos destOrigin,
                                    const gfx::IntSize& fbSize,
                                    Maybe<gfxAlphaType> convertAlpha) {
+  const auto sizes = yuvData.GetPlaneSizes();
+  if (!sizes || yuvData.mYSkip || yuvData.mCbSkip || yuvData.mCrSkip ||
+      yuvData.mYStride < 0 || yuvData.mCbCrStride < 0) {
+    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData.mYSkip << ","
+                       << yuvData.mCbSkip << "," << yuvData.mCrSkip << ", "
+                       << yuvData.mPictureRect << ", " << yuvData.mYStride
+                       << "," << yuvData.mCbCrStride;
+    return false;
+  }
+
   const auto& prog =
       GetDrawBlitProg({kFragHeader_Tex2D,
                        {kFragSample_ThreePlane, kFragConvert_ColorMatrix,
@@ -1282,19 +1310,6 @@ bool GLBlitHelper::BlitPlanarYCbCr(const PlanarYCbCrData& yuvData,
   }
 
   // --
-
-  auto ySize = yuvData.YDataSize();
-  auto cbcrSize = yuvData.CbCrDataSize();
-  if (yuvData.mYSkip || yuvData.mCbSkip || yuvData.mCrSkip || ySize.width < 0 ||
-      ySize.height < 0 || cbcrSize.width < 0 || cbcrSize.height < 0 ||
-      yuvData.mYStride < 0 || yuvData.mCbCrStride < 0) {
-    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData.mYSkip << ","
-                       << yuvData.mCbSkip << "," << yuvData.mCrSkip << ", "
-                       << ySize.width << "," << ySize.height << ", "
-                       << cbcrSize.width << "," << cbcrSize.height << ", "
-                       << yuvData.mYStride << "," << yuvData.mCbCrStride;
-    return false;
-  }
 
   gfx::IntSize divisors;
   switch (yuvData.mChromaSubsampling) {
@@ -1333,9 +1348,8 @@ bool GLBlitHelper::BlitPlanarYCbCr(const PlanarYCbCrData& yuvData,
 
   const ScopedSaveMultiTex saveTex(mGL, 3, LOCAL_GL_TEXTURE_2D);
   const ResetUnpackState reset(mGL);
-  const gfx::IntSize yTexSize(yuvData.mYStride, yuvData.YDataSize().height);
-  const gfx::IntSize uvTexSize(yuvData.mCbCrStride,
-                               yuvData.CbCrDataSize().height);
+  const gfx::IntSize yTexSize(yuvData.mYStride, sizes->mY.height);
+  const gfx::IntSize uvTexSize(yuvData.mCbCrStride, sizes->mCbCr.height);
 
   if (yTexSize != mYuvUploads_YSize || uvTexSize != mYuvUploads_UVSize) {
     mYuvUploads_YSize = yTexSize;
@@ -1697,16 +1711,11 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
   });
 
   if (createTextures) {
-    for (int i = 0; i < planes; i++) {
-      if (surface->GetTexture(i)) {
-        continue;
-      }
-      if (!surface->CreateTexture(mGL, i)) {
-        LOGDMABUF(("GLBlitHelper::Blit(): Failed to create DMABuf textures."));
-        return false;
-      }
-      didCreateTexture = true;
+    if (!surface->CreateTextures(mGL)) {
+      LOGDMABUF(("GLBlitHelper::Blit(): Failed to create DMABuf textures."));
+      return false;
     }
+    didCreateTexture = true;
   }
 
   // -
@@ -1718,12 +1727,14 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
 
   const char* fragSample = nullptr;
   auto fragConvert = kFragConvert_None;
-  // Determine the reorder from source and destination formats. The blit
-  // output is RGBA-ordered for every source shape (the YUV color matrix and
-  // EGL named-channel imports expose RGB in .rgb), while the destination
-  // may store the opposite, BGRA order (e.g. canvas2d); swap R/B exactly
-  // when the two orders differ.
-  const bool srcIsBGRA = false;
+  // Determine the reorder from source and destination formats. YUV sources
+  // are converted to RGB by the color matrix, while single-plane RGBA
+  // sources are sampled raw, so a BGRA-ordered DMABuf (e.g. a WebGL
+  // backbuffer) already matches a BGRA destination. Swap R/B exactly when
+  // the two orders differ.
+  const auto srcFormat = surface->GetFormat();
+  const bool srcIsBGRA = srcFormat == gfx::SurfaceFormat::B8G8R8A8 ||
+                         srcFormat == gfx::SurfaceFormat::B8G8R8X8;
   const bool dstIsBGRA = aDestFormat == gfx::SurfaceFormat::B8G8R8A8 ||
                          aDestFormat == gfx::SurfaceFormat::B8G8R8X8;
   const bool swapRB = srcIsBGRA != dstIsBGRA;
@@ -1776,128 +1787,39 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
   return true;
 }
 
-bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
-                                          DMABufSurface* surface) {
-  if ((!mGL->IsAtLeast(gl::ContextProfile::OpenGLCore, 300) &&
-       !mGL->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) ||
-      !mGL->HasPBOState()) {
-    gfxCriticalError() << "BlitYCbCrImageToDMABuf: old GL version";
+bool GLBlitHelper::BlitYCbCrTexturesToDMABuf(BufferSurface* aSource,
+                                             DMABufSurface* aDest) {
+  if (aSource->GetTextureCount() != 3) {
+    gfxCriticalError() << "BlitYCbCrTexturesToDMABuf: unexpected source planes "
+                       << aSource->GetTextureCount();
     return false;
   }
-
-  auto ySize = yuvData.YDataSize();
-  auto cbcrSize = yuvData.CbCrDataSize();
-  if (yuvData.mYSkip || yuvData.mCbSkip || yuvData.mCrSkip || ySize.width < 0 ||
-      ySize.height < 0 || cbcrSize.width < 0 || cbcrSize.height < 0 ||
-      yuvData.mYStride < 0 || yuvData.mCbCrStride < 0) {
-    gfxCriticalError() << "Unusual PlanarYCbCrData: " << yuvData.mYSkip << ","
-                       << yuvData.mCbSkip << "," << yuvData.mCrSkip << ", "
-                       << ySize.width << "," << ySize.height << ", "
-                       << cbcrSize.width << "," << cbcrSize.height << ", "
-                       << yuvData.mYStride << "," << yuvData.mCbCrStride;
-    return false;
-  }
-
-  GLenum internalFormat;
-  GLenum unpackFormat;
-  GLenum sizeFormat;
-  switch (yuvData.mColorDepth) {
-    case gfx::ColorDepth::COLOR_8:
-      internalFormat = LOCAL_GL_R8;
-      unpackFormat = LOCAL_GL_RED;
-      sizeFormat = LOCAL_GL_UNSIGNED_BYTE;
-      break;
-    case gfx::ColorDepth::COLOR_10:
-      internalFormat = LOCAL_GL_R16;
-      unpackFormat = LOCAL_GL_RED;
-      sizeFormat = LOCAL_GL_UNSIGNED_SHORT;
-      break;
-    default:
-      gfxCriticalError() << "BlitYCbCrImageToDMABuf: Unsupported color depth";
-      return false;
-  }
-
-  if (!mYuvUploads[0]) {
-    mGL->fGenTextures(3, mYuvUploads);
-    const ScopedBindTexture bindTex(mGL, mYuvUploads[0], LOCAL_GL_TEXTURE_2D);
-    mGL->TexParams_SetClampNoMips(LOCAL_GL_TEXTURE_2D);
-    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
-    mGL->TexParams_SetClampNoMips(LOCAL_GL_TEXTURE_2D);
-    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
-    mGL->TexParams_SetClampNoMips(LOCAL_GL_TEXTURE_2D);
-  }
-
-  // --
 
   const ScopedSaveMultiTex saveTex(mGL, 3, LOCAL_GL_TEXTURE_2D);
-  const ResetUnpackState reset(mGL);
-
-  gfx::IntSize yTexSize(yuvData.mYStride, yuvData.YDataSize().height);
-  gfx::IntSize uvTexSize(yuvData.mCbCrStride, yuvData.CbCrDataSize().height);
-
-  // If we upload short integer type (16bit per pixel),
-  // we need to divide texture width as it's derived from stride in bytes.
-  if (sizeFormat == LOCAL_GL_UNSIGNED_SHORT) {
-    yTexSize.width >>= 1;
-    uvTexSize.width >>= 1;
+  for (int i = 0; i < 3; i++) {
+    mGL->fActiveTexture(LOCAL_GL_TEXTURE0 + i);
+    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, aSource->GetTexture(i));
   }
-
-  if (yTexSize != mYuvUploads_YSize || uvTexSize != mYuvUploads_UVSize) {
-    mYuvUploads_YSize = yTexSize;
-    mYuvUploads_UVSize = uvTexSize;
-
-    mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-    mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
-    mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalFormat, yTexSize.width,
-                     yTexSize.height, 0, unpackFormat, sizeFormat, nullptr);
-    for (int i = 1; i < 3; i++) {
-      mGL->fActiveTexture(LOCAL_GL_TEXTURE0 + i);
-      mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[i]);
-      mGL->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalFormat, uvTexSize.width,
-                       uvTexSize.height, 0, unpackFormat, sizeFormat, nullptr);
-    }
-  }
-
-  // --
-
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE0);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[0]);
-  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, yTexSize.width,
-                      yTexSize.height, unpackFormat, sizeFormat,
-                      yuvData.mYChannel);
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE1);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[1]);
-  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
-                      uvTexSize.height, unpackFormat, sizeFormat,
-                      yuvData.mCbChannel);
-  mGL->fActiveTexture(LOCAL_GL_TEXTURE2);
-  mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mYuvUploads[2]);
-  mGL->fTexSubImage2D(LOCAL_GL_TEXTURE_2D, 0, 0, 0, uvTexSize.width,
-                      uvTexSize.height, unpackFormat, sizeFormat,
-                      yuvData.mCrChannel);
-
-  // --
 
   DrawBlitProg::BaseArgs baseArgs;
   baseArgs.yFlip = false;
-  const auto& clipRect = yuvData.mPictureRect;
-  baseArgs.texMatrix0 = SubRectMat3(clipRect, yTexSize);
+  // Source plane textures hold the picture only, there's nothing to crop.
+  baseArgs.texMatrix0 = SubRectMat3(0, 0, 1, 1);
 
-  const char* fragConvert = yuvData.mColorDepth == gfx::ColorDepth::COLOR_10
-                                ? kFragConvertYUVP010
-                                : kFragConvert_None;
+  const bool is10Bit = aSource->GetColorDepth() == gfx::ColorDepth::COLOR_10;
+  const char* fragConvert = is10Bit ? kFragConvertYUVP010 : kFragConvert_None;
 
   // Blit Y plane
   {
-    ScopedFramebufferForTexture autoFBForTex(mGL, surface->GetTexture(0));
+    ScopedFramebufferForTexture autoFBForTex(mGL, aDest->GetTexture(0));
     if (!autoFBForTex.IsComplete()) {
-      gfxCriticalError() << "GLBlitHelper::BlitYCbCrImageToDMABuf: "
+      gfxCriticalError() << "GLBlitHelper::BlitYCbCrTexturesToDMABuf: "
                             "ScopedFramebufferForTexture failed.";
       return false;
     }
     const ScopedBindFramebuffer bindFB(mGL, autoFBForTex.FB());
 
-    baseArgs.fbSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
+    baseArgs.fbSize = gfx::IntSize(aDest->GetWidth(), aDest->GetHeight());
     const auto& prog = GetDrawBlitProg(
         {kFragHeader_Tex2D, {kFragSample_OnePlane, fragConvert}});
     prog.Draw(baseArgs);
@@ -1905,15 +1827,15 @@ bool GLBlitHelper::BlitYCbCrImageToDMABuf(const PlanarYCbCrData& yuvData,
 
   // Blit UV planes
   {
-    ScopedFramebufferForTexture autoFBForTex(mGL, surface->GetTexture(1));
+    ScopedFramebufferForTexture autoFBForTex(mGL, aDest->GetTexture(1));
     if (!autoFBForTex.IsComplete()) {
-      gfxCriticalError() << "GLBlitHelper::BlitYCbCrImageToDMABuf: "
+      gfxCriticalError() << "GLBlitHelper::BlitYCbCrTexturesToDMABuf: "
                             "ScopedFramebufferForTexture failed.";
       return false;
     }
     const ScopedBindFramebuffer bindFB(mGL, autoFBForTex.FB());
 
-    baseArgs.fbSize = gfx::IntSize(surface->GetWidth(1), surface->GetHeight(1));
+    baseArgs.fbSize = gfx::IntSize(aDest->GetWidth(1), aDest->GetHeight(1));
     const auto& prog = GetDrawBlitProg(
         {kFragHeader_Tex2D, {kFragSample_TwoPlaneUV, fragConvert}});
     prog.Draw(baseArgs);

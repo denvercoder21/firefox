@@ -404,6 +404,37 @@ void MacroAssembler::rotateRight(Register count, Register input,
 }
 
 // ===============================================================
+// Shift or rotate, then combine with another register
+
+void MacroAssembler::lshift32ThenAdd(Imm32 shift, Register rhs,
+                                     Register srcDest) {
+  MOZ_ASSERT(rhs != srcDest);
+  lshift32(shift, srcDest);
+  add32(rhs, srcDest);
+}
+
+void MacroAssembler::lshift32ThenOr(Imm32 shift, Register rhs,
+                                    Register srcDest) {
+  MOZ_ASSERT(rhs != srcDest);
+  lshift32(shift, srcDest);
+  or32(rhs, srcDest);
+}
+
+void MacroAssembler::rshiftPtrThenXor(Imm32 shift, Register rhs,
+                                      Register srcDest) {
+  MOZ_ASSERT(rhs != srcDest);
+  rshiftPtr(shift, srcDest);
+  xorPtr(rhs, srcDest);
+}
+
+void MacroAssembler::rotateLeft64ThenXor(Imm32 count, Register64 rhs,
+                                         Register64 srcDest) {
+  MOZ_ASSERT(rhs != srcDest);
+  rotateLeft64(count, srcDest, srcDest, InvalidReg);
+  xor64(rhs, srcDest);
+}
+
+// ===============================================================
 // Shift instructions
 
 void MacroAssembler::lshift32(Register shift, Register srcDest) {
@@ -1077,6 +1108,20 @@ void MacroAssembler::branchTestNull(Condition cond, const ValueOperand& value,
   branchTestNullImpl(cond, value, label);
 }
 
+void MacroAssembler::branchTestNullOrUndefined(Condition cond, Register tag,
+                                               Label* label) {
+  MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  if (cond == Equal) {
+    branchTestNull(Equal, tag, label);
+    branchTestUndefined(Equal, tag, label);
+    return;
+  }
+  Label done;
+  branchTestNull(Equal, tag, &done);
+  branchTestUndefined(NotEqual, tag, label);
+  bind(&done);
+}
+
 template <typename T>
 void MacroAssembler::branchTestNullImpl(Condition cond, const T& t,
                                         Label* label) {
@@ -1109,6 +1154,11 @@ void MacroAssembler::branchTestObjectImpl(Condition cond, const T& t,
                                           Label* label) {
   cond = testObject(cond, t);
   j(cond, label);
+}
+
+void MacroAssembler::branchTestGCThing(Condition cond, Register tag,
+                                       Label* label) {
+  branchTestGCThingImpl(cond, tag, label);
 }
 
 void MacroAssembler::branchTestGCThing(Condition cond, const Address& address,

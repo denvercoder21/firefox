@@ -119,13 +119,8 @@ uint32_t nsLookAndFeel::SystemColorFilter() {
   return key.GetValueAsDword(u"FilterType"_ns).valueOr(0);
 }
 
-nsLookAndFeel::nsLookAndFeel() {
-  glean::widget::touch_enabled_device
-      .EnumGet(static_cast<glean::widget::TouchEnabledDeviceLabel>(
-          WinUtils::IsTouchDeviceSupportPresent()))
-      .Add();
-}
-
+// {Con/De}structor in .cpp as mColorFilterWatcher needs KeyWatcher definition
+nsLookAndFeel::nsLookAndFeel() = default;
 nsLookAndFeel::~nsLookAndFeel() = default;
 
 void nsLookAndFeel::NativeInit() { EnsureInit(); }
@@ -1076,7 +1071,7 @@ void nsLookAndFeel::EnsureInit() {
         HKEY_CURRENT_USER, u"Software\\Microsoft\\ColorFiltering"_ns,
         WinRegistry::KeyMode::QueryValue | WinRegistry::KeyMode::Notify);
     if (key) {
-      mColorFilterWatcher = MakeUnique<WinRegistry::KeyWatcher>(
+      mColorFilterWatcher = std::make_unique<WinRegistry::KeyWatcher>(
           std::move(key), GetCurrentSerialEventTarget(), [this] {
             MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
             if (mCurrentColorFilter != SystemColorFilter()) {

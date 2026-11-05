@@ -4,11 +4,11 @@
 
 #include "mozilla/layers/APZCTreeManagerChild.h"
 
-#include "InputData.h"                           // for InputData
-#include "mozilla/dom/BrowserParent.h"           // for BrowserParent
-#include "mozilla/layers/APZCCallbackHelper.h"   // for APZCCallbackHelper
-#include "mozilla/layers/APZInputBridgeChild.h"  // for APZInputBridgeChild
-#include "mozilla/layers/DoubleTapToZoom.h"      // for DoubleTapToZoomMetrics
+#include "InputData.h"                          // for InputData
+#include "mozilla/dom/BrowserParent.h"          // for BrowserParent
+#include "mozilla/layers/APZBridgeChild.h"      // for APZBridgeChild
+#include "mozilla/layers/APZCCallbackHelper.h"  // for APZCCallbackHelper
+#include "mozilla/layers/DoubleTapToZoom.h"     // for DoubleTapToZoomMetrics
 #include "mozilla/layers/GeckoContentController.h"  // for GeckoContentController
 #include "mozilla/layers/RemoteCompositorSession.h"  // for RemoteCompositorSession
 #ifdef MOZ_WIDGET_ANDROID
@@ -26,53 +26,52 @@ void APZCTreeManagerChild::SetCompositorSession(
     RemoteCompositorSession* aSession) {
   // Exactly one of mCompositorSession and aSession must be null (i.e. either
   // we're setting mCompositorSession or we're clearing it).
-  MOZ_ASSERT(!mCompositorSession ^ !aSession);
+  MOZ_RELEASE_ASSERT(!mCompositorSession ^ !aSession);
   mCompositorSession = aSession;
-  if (mInputBridge) {
-    mInputBridge->SetCompositorSession(aSession);
+  if (mBridge) {
+    mBridge->SetCompositorSession(aSession);
   }
 }
 
-void APZCTreeManagerChild::SetInputBridge(
-    RefPtr<APZInputBridgeChild>&& aInputBridge) {
-  // The input bridge only exists from the UI process to the GPU process.
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(!mInputBridge);
+void APZCTreeManagerChild::SetBridge(RefPtr<APZBridgeChild>&& aBridge) {
+  // The APZ bridge only exists from the UI process to the GPU process.
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  MOZ_RELEASE_ASSERT(!mBridge);
 
-  mInputBridge = std::move(aInputBridge);
+  mBridge = std::move(aBridge);
 }
 
 void APZCTreeManagerChild::Destroy() {
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mInputBridge) {
-    mInputBridge->Destroy();
-    mInputBridge = nullptr;
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (mBridge) {
+    mBridge->Destroy();
+    mBridge = nullptr;
   }
 }
 
 void APZCTreeManagerChild::ZoomToRect(const ScrollableLayerGuid& aGuid,
                                       const ZoomTarget& aZoomTarget,
                                       const uint32_t aFlags) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   SendZoomToRect(aGuid, aZoomTarget, aFlags);
 }
 
 void APZCTreeManagerChild::ContentReceivedInputBlock(uint64_t aInputBlockId,
                                                      bool aPreventDefault) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   SendContentReceivedInputBlock(aInputBlockId, aPreventDefault);
 }
 
 void APZCTreeManagerChild::SetTargetAPZC(
     uint64_t aInputBlockId, const nsTArray<ScrollableLayerGuid>& aTargets) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   SendSetTargetAPZC(aInputBlockId, aTargets);
 }
 
 void APZCTreeManagerChild::UpdateZoomConstraints(
     const ScrollableLayerGuid& aGuid,
     const Maybe<ZoomConstraints>& aConstraints) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   if (CanSend()) {
     SendUpdateZoomConstraints(aGuid, aConstraints);
   }
@@ -80,29 +79,29 @@ void APZCTreeManagerChild::UpdateZoomConstraints(
 
 void APZCTreeManagerChild::SetAllowedTouchBehavior(
     uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aValues) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   SendSetAllowedTouchBehavior(aInputBlockId, aValues);
 }
 
 void APZCTreeManagerChild::StartScrollbarDrag(
     const ScrollableLayerGuid& aGuid, const AsyncDragMetrics& aDragMetrics) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   SendStartScrollbarDrag(aGuid, aDragMetrics);
 }
 
 void APZCTreeManagerChild::NotifyApzAwareListenerAdded(
     const ScrollableLayerGuid& aGuid) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   if (CanSend()) {
     SendNotifyApzAwareListenerAdded(aGuid);
   }
 }
 
-APZInputBridge* APZCTreeManagerChild::InputBridge() {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(mInputBridge);
+RefPtr<APZBridge> APZCTreeManagerChild::Bridge() {
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  MOZ_RELEASE_ASSERT(mBridge);
 
-  return mInputBridge.get();
+  return mBridge;
 }
 
 }  // namespace layers

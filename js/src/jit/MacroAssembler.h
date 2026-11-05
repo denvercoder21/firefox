@@ -594,6 +594,17 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
  public:
   // ===============================================================
+  // Indirect call/jump targets.
+
+  // Emit an indirect call or jump target of the specified kind. These ops may
+  // emit additional instructions before/after the actual target location. The
+  // returned CodeOffset and bound label identify the first instruction executed
+  // at the target.
+  inline CodeOffset indirectTarget(TargetKind kind);
+  inline void bindIndirectTarget(Label* label, TargetKind kind);
+  inline void bindIndirectTarget(CodeLabel* label, TargetKind kind);
+
+  // ===============================================================
   // Simple call functions.
 
   // The returned CodeOffset is the assembler offset for the instruction
@@ -1527,6 +1538,21 @@ class MacroAssembler : public MacroAssemblerSpecific {
                             Register temp) PER_ARCH;
 
   // ===============================================================
+  // Shift or rotate, then combine with another register
+
+  // These compute |srcDest = (srcDest <shift> amount) <op> rhs|, which is a
+  // single instruction on ARM64 and a shift followed by the op elsewhere.
+  // |rhs| and |srcDest| must differ.
+  inline void lshift32ThenAdd(Imm32 shift, Register rhs,
+                              Register srcDest) PER_SHARED_ARCH;
+  inline void lshift32ThenOr(Imm32 shift, Register rhs,
+                             Register srcDest) PER_SHARED_ARCH;
+  inline void rshiftPtrThenXor(Imm32 shift, Register rhs,
+                               Register srcDest) PER_SHARED_ARCH;
+  inline void rotateLeft64ThenXor(Imm32 count, Register64 rhs,
+                                  Register64 srcDest) PER_SHARED_ARCH;
+
+  // ===============================================================
   // Bit counting functions
 
   // knownNotZero may be true only if the src is known not to be zero.
@@ -1987,6 +2013,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestPrimitive(Condition cond, Register tag,
                                   Label* label) PER_SHARED_ARCH;
+  inline void branchTestGCThing(Condition cond, Register tag,
+                                Label* label) PER_SHARED_ARCH;
   inline void branchTestMagic(Condition cond, Register tag,
                               Label* label) PER_SHARED_ARCH;
   void branchTestType(Condition cond, Register tag, JSValueType type,
@@ -2054,6 +2082,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
                              Label* label) PER_SHARED_ARCH;
   inline void branchTestNull(Condition cond, const ValueOperand& value,
                              Label* label) PER_SHARED_ARCH;
+
+  // Branch if the value is null or undefined (Equal) or neither (NotEqual).
+  inline void branchTestNullOrUndefined(Condition cond, Register tag,
+                                        Label* label) PER_SHARED_ARCH;
+  inline void branchTestNullOrUndefined(Condition cond,
+                                        const ValueOperand& value,
+                                        Label* label) PER_ARCH;
 
   // Clobbers the ScratchReg on x64.
   inline void branchTestObject(Condition cond, const Address& address,
@@ -4023,38 +4058,42 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(riscv64);
 
   // `ptr` will always be updated.
-  void wasmUnalignedLoad(const wasm::MemoryAccessDesc& access,
-                         Register memoryBase, Register ptr, Register ptrScratch,
-                         Register output, Register tmp) DEFINED_ON(mips64);
+  FaultingCodeRange wasmUnalignedLoad(const wasm::MemoryAccessDesc& access,
+                                      Register memoryBase, Register ptr,
+                                      Register ptrScratch, Register output,
+                                      Register tmp) DEFINED_ON(mips64);
 
   // MIPS: `ptr` will always be updated.
-  void wasmUnalignedLoadFP(const wasm::MemoryAccessDesc& access,
-                           Register memoryBase, Register ptr,
-                           Register ptrScratch, FloatRegister output,
-                           Register tmp1) DEFINED_ON(mips64);
-
-  // `ptr` will always be updated.
-  void wasmUnalignedLoadI64(const wasm::MemoryAccessDesc& access,
-                            Register memoryBase, Register ptr,
-                            Register ptrScratch, Register64 output,
-                            Register tmp) DEFINED_ON(mips64);
-
-  // MIPS: `ptr` will always be updated.
-  void wasmUnalignedStore(const wasm::MemoryAccessDesc& access, Register value,
-                          Register memoryBase, Register ptr,
-                          Register ptrScratch, Register tmp) DEFINED_ON(mips64);
-
-  // `ptr` will always be updated.
-  void wasmUnalignedStoreFP(const wasm::MemoryAccessDesc& access,
-                            FloatRegister floatValue, Register memoryBase,
-                            Register ptr, Register ptrScratch, Register tmp)
+  FaultingCodeRange wasmUnalignedLoadFP(const wasm::MemoryAccessDesc& access,
+                                        Register memoryBase, Register ptr,
+                                        Register ptrScratch,
+                                        FloatRegister output, Register tmp1)
       DEFINED_ON(mips64);
 
   // `ptr` will always be updated.
-  void wasmUnalignedStoreI64(const wasm::MemoryAccessDesc& access,
-                             Register64 value, Register memoryBase,
-                             Register ptr, Register ptrScratch, Register tmp)
+  FaultingCodeRange wasmUnalignedLoadI64(const wasm::MemoryAccessDesc& access,
+                                         Register memoryBase, Register ptr,
+                                         Register ptrScratch, Register64 output,
+                                         Register tmp) DEFINED_ON(mips64);
+
+  // MIPS: `ptr` will always be updated.
+  FaultingCodeRange wasmUnalignedStore(const wasm::MemoryAccessDesc& access,
+                                       Register value, Register memoryBase,
+                                       Register ptr, Register ptrScratch,
+                                       Register tmp) DEFINED_ON(mips64);
+
+  // `ptr` will always be updated.
+  FaultingCodeRange wasmUnalignedStoreFP(const wasm::MemoryAccessDesc& access,
+                                         FloatRegister floatValue,
+                                         Register memoryBase, Register ptr,
+                                         Register ptrScratch, Register tmp)
       DEFINED_ON(mips64);
+
+  // `ptr` will always be updated.
+  FaultingCodeRange wasmUnalignedStoreI64(const wasm::MemoryAccessDesc& access,
+                                          Register64 value, Register memoryBase,
+                                          Register ptr, Register ptrScratch,
+                                          Register tmp) DEFINED_ON(mips64);
 
   // wasm specific methods, used in both the wasm baseline compiler and ion.
 
@@ -4126,7 +4165,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                             uint32_t funcDefIndex,
                             const ReturnCallAdjustmentInfo& retCallInfo);
 
-  void wasmCollapseFrameSlow(const ReturnCallAdjustmentInfo& retCallInfo);
+  void wasmCollapseFrameSlow(const ReturnCallAdjustmentInfo& retCallInfo,
+                             wasm::CallSiteDesc desc);
 
   void wasmCollapseFrameFast(const ReturnCallAdjustmentInfo& retCallInfo);
 
@@ -5851,7 +5891,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void allocateString(Register result, Register temp, gc::AllocKind allocKind,
                       gc::Heap initialHeap, Label* fail);
   void nurseryAllocateBigInt(Register result, Register temp, Label* fail);
-  void copySlotsFromTemplate(Register obj,
+  void copySlotsFromTemplate(Register obj, Register temp,
                              const TemplateNativeObject& templateObj,
                              uint32_t start, uint32_t end);
   void fillSlotsWithConstantValue(Address addr, Register temp, uint32_t start,
@@ -5860,6 +5900,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               uint32_t end);
   void fillSlotsWithUninitialized(Address addr, Register temp, uint32_t start,
                                   uint32_t end);
+  // Store all four fields of the ObjectElements header that starts at
+  // |header|.
+  void storeElementsHeader(const Address& header, uint32_t flags,
+                           uint32_t initializedLength, uint32_t capacity,
+                           uint32_t length);
 
   void initGCSlots(Register obj, Register temp,
                    const TemplateNativeObject& templateObj);

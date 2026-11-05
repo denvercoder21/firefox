@@ -13,6 +13,7 @@ const lazy = XPCOMUtils.declareLazy({
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
   ContextualIdentityService:
     "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
+  GenAI: "moz-src:///browser/components/genai/GenAI.sys.mjs",
   LinkPreview: "moz-src:///browser/components/genai/LinkPreview.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   TransientPrefs: "resource:///modules/TransientPrefs.sys.mjs",
@@ -88,6 +89,13 @@ Preferences.addAll([
   { id: "browser.ml.linkPreview.enabled", type: "bool" },
   { id: "browser.ml.linkPreview.optin", type: "bool" },
   { id: "browser.ml.linkPreview.longPress", type: "bool" },
+
+  // Text selection actions menu
+  { id: "browser.highlightToSearch.featureGate", type: "bool" },
+  { id: "browser.highlightToSearch.enabled", type: "bool" },
+  { id: "browser.highlightToSearch.search.enabled", type: "bool" },
+  { id: "browser.highlightToSearch.copy.enabled", type: "bool" },
+  { id: "browser.ml.chat.shortcuts", type: "bool" },
 
   // CFR
   {
@@ -459,6 +467,101 @@ Preferences.addSetting({
   id: "linkPreviewLongPress",
   pref: "browser.ml.linkPreview.longPress",
 });
+const HIGHLIGHT_TO_SEARCH_ACTIONS = [
+  "highlightToSearchAskChatbot",
+  "highlightToSearchSearch",
+  "highlightToSearchCopy",
+];
+
+function availableHighlightToSearchActions() {
+  return HIGHLIGHT_TO_SEARCH_ACTIONS.map(id =>
+    Preferences.getSetting(id)
+  ).filter(action => action.visible);
+}
+
+/**
+ * @param {string} action
+ * @param {boolean} enabled
+ * @param {string} [source]
+ */
+function recordHighlightToSearchToggle(action, enabled, source = "settings") {
+  Glean.selectionMenu.optionToggled.record({ action, enabled, source });
+}
+
+/**
+ * @param {boolean} checked
+ */
+function onHighlightToSearchActionChange(checked) {
+  if (checked) {
+    lazy.GenAI.markSelectionCalloutSeen();
+  }
+  if (!checked && !availableHighlightToSearchActions().some(a => a.value)) {
+    Preferences.getSetting("highlightToSearchEnabled").value = false;
+    recordHighlightToSearchToggle("master", false, "uncheck_all");
+  }
+}
+
+Preferences.addSetting({
+  id: "highlightToSearchFeatureGate",
+  pref: "browser.highlightToSearch.featureGate",
+});
+Preferences.addSetting({
+  id: "highlightToSearchEnabled",
+  pref: "browser.highlightToSearch.enabled",
+  deps: ["highlightToSearchFeatureGate"],
+  visible: ({ highlightToSearchFeatureGate }) =>
+    highlightToSearchFeatureGate.value,
+  onUserChange(checked) {
+    recordHighlightToSearchToggle("master", checked);
+    if (checked) {
+      lazy.GenAI.markSelectionCalloutSeen();
+    }
+    const actions = availableHighlightToSearchActions();
+    if (checked && !actions.some(action => action.value)) {
+      for (const action of actions) {
+        action.value = true;
+      }
+    }
+  },
+});
+Preferences.addSetting({
+  id: "highlightToSearchAskChatbot",
+  pref: "browser.ml.chat.shortcuts",
+  deps: ["aiControlDefault", "aiControlSidebarChatbot", "chatbotProvider"],
+  visible: ({ aiControlDefault, aiControlSidebarChatbot }) =>
+    window.canShowAiFeature(aiControlSidebarChatbot, aiControlDefault) &&
+    lazy.GenAI.canOfferChatbot,
+  onUserChange(checked) {
+    recordHighlightToSearchToggle("ai", checked);
+    onHighlightToSearchActionChange(checked);
+  },
+  getControlConfig(config, { chatbotProvider }) {
+    const provider = lazy.GenAI.chatProviders.get(chatbotProvider.value)?.name;
+    return provider
+      ? {
+          ...config,
+          l10nId: "highlight-to-search-settings-ask-provider",
+          l10nArgs: { provider },
+        }
+      : { ...config, l10nId: "highlight-to-search-settings-ask-generic" };
+  },
+});
+Preferences.addSetting({
+  id: "highlightToSearchSearch",
+  pref: "browser.highlightToSearch.search.enabled",
+  onUserChange(checked) {
+    recordHighlightToSearchToggle("search", checked);
+    onHighlightToSearchActionChange(checked);
+  },
+});
+Preferences.addSetting({
+  id: "highlightToSearchCopy",
+  pref: "browser.highlightToSearch.copy.enabled",
+  onUserChange(checked) {
+    recordHighlightToSearchToggle("copy", checked);
+    onHighlightToSearchActionChange(checked);
+  },
+});
 
 // Keyboard shortcuts settings
 Preferences.addSetting({
@@ -711,6 +814,22 @@ SettingGroupManager.registerGroups({
           },
         ],
       },
+      {
+        id: "highlightToSearchEnabled",
+        l10nId: "highlight-to-search-settings-enable",
+        subcategory: "highlight-to-search",
+        items: [
+          { id: "highlightToSearchAskChatbot" },
+          {
+            id: "highlightToSearchSearch",
+            l10nId: "highlight-to-search-settings-search",
+          },
+          {
+            id: "highlightToSearchCopy",
+            l10nId: "highlight-to-search-settings-copy",
+          },
+        ],
+      },
     ],
   },
   keyboardShortcuts: {
@@ -842,6 +961,22 @@ SettingGroupManager.registerGroups({
           {
             id: "linkPreviewLongPress",
             l10nId: "link-preview-settings-long-press",
+          },
+        ],
+      },
+      {
+        id: "highlightToSearchEnabled",
+        l10nId: "highlight-to-search-settings-enable",
+        subcategory: "highlight-to-search",
+        items: [
+          { id: "highlightToSearchAskChatbot" },
+          {
+            id: "highlightToSearchSearch",
+            l10nId: "highlight-to-search-settings-search",
+          },
+          {
+            id: "highlightToSearchCopy",
+            l10nId: "highlight-to-search-settings-copy",
           },
         ],
       },

@@ -3,7 +3,6 @@
 
 
 import json
-import time
 from datetime import datetime
 from time import mktime
 
@@ -453,7 +452,7 @@ def test_bugbug_timeout(monkeypatch, responses, params):
     )
 
     # Make sure the test runs fast.
-    monkeypatch.setattr(time, "sleep", lambda i: None)
+    monkeypatch.setattr("gecko_taskgraph.util.bugbug.RETRY_TIMEOUT", 0)
 
     opt = BugBugPushSchedules(0.5)
     with pytest.raises(BugbugTimeoutException):
@@ -473,7 +472,7 @@ def test_bugbug_fallback(monkeypatch, responses, params):
     opt = BugBugPushSchedules(0.5, fallback=FALLBACK)
 
     # Make sure the test runs fast.
-    monkeypatch.setattr(time, "sleep", lambda i: None)
+    monkeypatch.setattr("gecko_taskgraph.util.bugbug.RETRY_TIMEOUT", 0)
 
     def fake_should_remove_task(task, params, _):
         return task.label == default_tasks[0].label
@@ -549,7 +548,16 @@ def test_expanded(params):
     assert scheduled == all_labels
 
 
-def test_tryselect_expanded(responses, params):
+@pytest.mark.parametrize(
+    "strategy",
+    [
+        "skip-unless-backstop",
+        "skip-unless-expanded",
+        "perf-cadence-backstop",
+        "perf-cadence-expanded",
+    ],
+)
+def test_tryselect_backstop_expanded(responses, params, strategy):
     params.update({"project": "try", "backstop": False, "pushlog_id": 11})
     responses.add(
         responses.GET,
@@ -563,11 +571,43 @@ def test_tryselect_expanded(responses, params):
     )
 
     tasks = list(generate_tasks({}, {}, {}))
-    opt = tryselect.bugbug_reduced_manifests_config_selection_medium[
-        "skip-unless-expanded"
-    ]
+    opt = tryselect.bugbug_reduced_manifests_config_selection_medium[strategy]
     scheduled = {t.label for t in tasks if not opt.should_remove_task(t, params, None)}
     assert scheduled == {"task-0-label"}
+
+
+def test_tryselect_changed(responses, params):
+    params.update({
+        "project": "try",
+        "files_changed": ["js/src/foo.cpp"],
+        "base_rev": "123456",
+    })
+    responses.add(
+        responses.GET,
+        BUGBUG_BASE_URL + "/push/{project}/{head_rev}/schedules".format(**params),
+        json={
+            "tasks": {"task-1-label": 0.9},
+            "reduced_tasks": {"task-1-label": 0.9},
+            "known_tasks": ["task-0-label", "task-1-label", "task-2-label"],
+        },
+        status=200,
+    )
+
+    tasks = list(generate_tasks({}, {}, {}))
+    opt = tryselect.bugbug_reduced_manifests_config_selection_medium[
+        "skip-unless-changed"
+    ]
+    patterns = {
+        "task-0-label": ["js/src/**"],
+        "task-1-label": ["dom/**"],
+        "task-2-label": ["dom/**"],
+    }
+    scheduled = {
+        t.label
+        for t in tasks
+        if not opt.should_remove_task(t, params, patterns[t.label])
+    }
+    assert scheduled == {"task-0-label", "task-1-label"}
 
 
 def test_project_autoland_test(monkeypatch, responses, params):
