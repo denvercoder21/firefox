@@ -738,7 +738,7 @@ export class UrlbarView {
     // focus) we should discard the telemetry event created when the view was
     // opened.
     if (!this.input.focused && !elementPicked) {
-      this.controller.engagementEvent.discard();
+      this.controller.session.discard();
     }
 
     window.removeEventListener("resize", this);
@@ -915,7 +915,7 @@ export class UrlbarView {
       }
     }
 
-    this.controller.engagementEvent.discard();
+    this.controller.session.discard();
     queryOptions.searchString = this.input.value;
     queryOptions.autofillIgnoresSelection = true;
     queryOptions.interactionType = "returned";
@@ -1457,7 +1457,7 @@ export class UrlbarView {
 
     // Discard tentative exposures. This is analogous to marking the
     // hypothetical hidden rows of hidden-exposure results as stale.
-    this.controller.engagementEvent.discardTentativeExposures();
+    this.controller.session.discardTentativeExposures();
 
     // Walk rows and find an insertion index for results. To avoid flicker, we
     // skip rows until we find one compatible with the result we want to apply.
@@ -1497,10 +1497,7 @@ export class UrlbarView {
           if (result.isHiddenExposure) {
             // Don't increment `rowIndex` because we're not actually updating
             // the row. We'll visit it again in the next iteration.
-            this.controller.engagementEvent.addExposure(
-              result,
-              this.#queryContext
-            );
+            this.controller.session.addExposure(result, this.#queryContext);
             continue;
           }
 
@@ -1570,19 +1567,17 @@ export class UrlbarView {
           includeHiddenExposures: true,
         });
       let canBeVisible =
-        newSpanCount <= this.#queryContext.maxResults && !seenMisplacedResult;
+        newSpanCount <= this.#queryContext.maxResultsActual &&
+        !seenMisplacedResult;
       if (result.isHiddenExposure) {
         if (canBeVisible) {
-          this.controller.engagementEvent.addExposure(
-            result,
-            this.#queryContext
-          );
+          this.controller.session.addExposure(result, this.#queryContext);
         } else {
           // Add a tentative exposure: The hypothetical row for this
           // hidden-exposure result can't be visible now, but as long as it were
           // not marked stale in a later update, it would be shown when stale
           // rows are removed.
-          this.controller.engagementEvent.addTentativeExposure(
+          this.controller.session.addTentativeExposure(
             result,
             this.#queryContext
           );
@@ -3142,10 +3137,7 @@ export class UrlbarView {
           (result.type == UrlbarShared.RESULT_TYPE.SEARCH &&
             result.payload.suggestion);
         if (result.exposureTelemetry) {
-          this.controller.engagementEvent.addExposure(
-            result,
-            this.#queryContext
-          );
+          this.controller.session.addExposure(result, this.#queryContext);
         }
 
         for (let target of item.querySelectorAll(
@@ -3393,7 +3385,7 @@ export class UrlbarView {
 
     // Accept tentative exposures. This is analogous to unhiding the
     // hypothetical non-stale hidden rows of hidden-exposure results.
-    this.controller.engagementEvent.acceptTentativeExposures();
+    this.controller.session.acceptTentativeExposures();
   }
 
   #startRemoveStaleRowsTimer() {
@@ -4285,14 +4277,20 @@ export class UrlbarView {
    * The commands that open a result in a new tab or window. They're offered
    * alongside a result's own menu commands, gated on `contextMenu.featureGate`.
    *
+   * @param {UrlbarResult} result
    * @returns {UrlbarResultCommand[]}
    */
-  get #openInCommands() {
+  #getOpenInCommands(result) {
+    let isSearch = result.type == UrlbarShared.RESULT_TYPE.SEARCH;
     /** @type {UrlbarResultCommand[]} */
     let commands = [
       {
         openIn: "tab",
-        l10n: { id: "urlbar-view-context-menu-open-in-tab2" },
+        l10n: {
+          id: isSearch
+            ? "urlbar-view-context-menu-search-in-tab"
+            : "urlbar-view-context-menu-open-in-tab2",
+        },
       },
     ];
     if (
@@ -4302,17 +4300,29 @@ export class UrlbarView {
       commands.push({
         openIn: "container-tab",
         submenu: true,
-        l10n: { id: "urlbar-view-context-menu-open-in-container-tab2" },
+        l10n: {
+          id: isSearch
+            ? "urlbar-view-context-menu-search-in-container-tab"
+            : "urlbar-view-context-menu-open-in-container-tab2",
+        },
       });
     }
     commands.push(
       {
         openIn: "window",
-        l10n: { id: "urlbar-view-context-menu-open-in-window2" },
+        l10n: {
+          id: isSearch
+            ? "urlbar-view-context-menu-search-in-window"
+            : "urlbar-view-context-menu-open-in-window2",
+        },
       },
       {
         openIn: "private-window",
-        l10n: { id: "urlbar-view-context-menu-open-in-private-window2" },
+        l10n: {
+          id: isSearch
+            ? "urlbar-view-context-menu-search-in-private-window"
+            : "urlbar-view-context-menu-open-in-private-window2",
+        },
       }
     );
     return commands;
@@ -4378,7 +4388,7 @@ export class UrlbarView {
   #getMenuCommands(result, { showSkipMenuWithTabItem = false } = {}) {
     let commands = this.#getResultMenuCommands(result);
     if (this.#canOpenInNewTarget(result)) {
-      let openInCommands = this.#openInCommands;
+      let openInCommands = this.#getOpenInCommands(result);
       commands = commands
         ? [...openInCommands, { name: "separator" }, ...commands]
         : openInCommands;
@@ -4495,6 +4505,8 @@ export class UrlbarView {
       if (data.type == "checkbox") {
         menuitem.type = "checkbox";
         menuitem.checked = data.checked;
+      } else {
+        menuitem.toggleAttribute("no-icon", true);
       }
       panel.appendChild(menuitem);
     }
@@ -4557,6 +4569,7 @@ export class UrlbarView {
   #createContainerMenuItem(l10nId, onPick) {
     let menuitem = document.createElement("panel-item");
     document.l10n.setAttributes(menuitem, l10nId);
+    menuitem.toggleAttribute("no-icon", true);
     menuitem.addEventListener("click", onPick);
     return menuitem;
   }

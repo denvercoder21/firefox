@@ -1433,7 +1433,7 @@ html {
 
         @container card-stack (width <= #{$card-stack-stacked-width}) {
           height: var(--card-stack-secondary-height);
-          margin-block: 12px;
+          margin-block: 12px 0;
           margin-inline: auto;
         }
       }
@@ -1465,11 +1465,16 @@ html {
           padding-block: var(--space-xxlarge);
           width: auto;
 
+          @container card-stack (width <= #{$card-stack-stacked-width}) {
+            padding-block: var(--space-xlarge);
+          }
+
           .main-content-inner {
             justify-content: center;
 
             @container card-stack (width <= #{$card-stack-stacked-width}) {
               align-items: center;
+              padding-block: var(--space-large);
             }
           }
         }
@@ -1520,6 +1525,18 @@ html {
           font-size: var(--font-size-root);
           font-weight: var(--font-weight-semibold);
           line-height: 1;
+        }
+
+        @container card-stack (width <= #{$card-stack-stacked-width}) {
+          flex-direction: column;
+          gap: var(--space-xxsmall);
+          width: 100%;
+
+          .primary,
+          .secondary,
+          .secondary-cta {
+            width: inherit;
+          }
         }
       }
 
@@ -5090,11 +5107,11 @@ html {
       flex-shrink: 0;
       width: var(--icon-size-small);
       height: var(--icon-size-small);
-      background: url('chrome://global/skin/media/pause-fill.svg') no-repeat center / contain;
+      background: url('resource://content-accessible/media/pause-fill.svg') no-repeat center / contain;
     }
 
     &.paused::before {
-      background-image: url('chrome://global/skin/media/play-fill.svg');
+      background-image: url('resource://content-accessible/media/play-fill.svg');
     }
 
     &:hover {

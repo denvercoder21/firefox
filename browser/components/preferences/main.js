@@ -111,6 +111,7 @@ Preferences.addAll([
   { id: "browser.ai.control.smartTabGroups", type: "string" },
   { id: "browser.ai.control.linkPreviewKeyPoints", type: "string" },
   { id: "browser.ai.control.speechRecognition", type: "string" },
+  { id: "browser.ai.control.generatedWidgets", type: "string" },
   { id: "browser.ai.control.sidebarChatbot", type: "string" },
   { id: "browser.ai.control.smartWindow", type: "string" },
   { id: "browser.ml.chat.provider", type: "string" },
@@ -255,22 +256,22 @@ function getBundleForLocales(newLocales) {
 
 var gNodeToObjectMap = new WeakMap();
 
+/**
+ * @param {string} aId
+ * @param {string} aEventType
+ * @param {(ev: Event) => void} aCallback
+ */
+function setEventListener(aId, aEventType, aCallback) {
+  document
+    .getElementById(aId)
+    .addEventListener(aEventType, aCallback.bind(gMainPane));
+}
+
 var gMainPane = {
   /**
    * Initialization of gMainPane.
    */
   init() {
-    /**
-     * @param {string} aId
-     * @param {string} aEventType
-     * @param {(ev: Event) => void} aCallback
-     */
-    function setEventListener(aId, aEventType, aCallback) {
-      document
-        .getElementById(aId)
-        .addEventListener(aEventType, aCallback.bind(gMainPane));
-    }
-
     this.displayUseSystemLocale();
 
     if (Services.prefs.getBoolPref("intl.multilingual.enabled")) {

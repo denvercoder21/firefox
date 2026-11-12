@@ -2161,7 +2161,7 @@ void MacroAssembler::loadInt32ToStringWithBase(
   {
     // Compute |scratch1 = input / base| and |scratch2 = input % base|.
     if (std::has_single_bit(uint32_t(base))) {
-      uint32_t shift = mozilla::FloorLog2(uint32_t(base));
+      uint32_t shift = std::countr_zero(uint32_t(base));
 
       rshift32(Imm32(shift), input, scratch1);
       and32(Imm32((uint32_t(1) << shift) - 1), input, scratch2);
@@ -3394,7 +3394,7 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
   // scratch3 = &scratch2->entries_[scratch3]
   constexpr size_t entrySize = sizeof(MegamorphicSetPropCache::Entry);
   if constexpr (std::has_single_bit(entrySize)) {
-    lshift32(Imm32(mozilla::FloorLog2(entrySize)), scratch3);
+    lshift32(Imm32(std::countr_zero(entrySize)), scratch3);
   } else {
     mul32(Imm32(entrySize), scratch3);
   }
@@ -8523,6 +8523,22 @@ void MacroAssembler::nopPatchableToCall(const wasm::CallSiteDesc& desc) {
   append(desc, offset);
 }
 
+void MacroAssembler::ensureNearCallPatchSpace(uint32_t offset) {
+  if (currentOffset() - offset < Assembler::PatchWrite_NearCallSize()) {
+    int32_t paddingSize = Assembler::PatchWrite_NearCallSize();
+    paddingSize -= currentOffset() - offset;
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+    nop(paddingSize);
+#else
+    for (int32_t i = 0; i < paddingSize; i += Assembler::NopSize()) {
+      nop();
+    }
+#endif
+  }
+  MOZ_ASSERT_IF(
+      !oom(), currentOffset() - offset >= Assembler::PatchWrite_NearCallSize());
+}
+
 // Given a cell and the chunk containing that cell, load the word containing
 // the mark bits for that cell, and compute the bitIndex for a particular mark
 // color.
@@ -11182,7 +11198,7 @@ void MacroAssembler::checkForMatchMFBT(Register hashTable, Register hashIndex,
   // Load entries[hashIndex] into |scratch|
   size_t EntrySize = sizeof(typename Table::Entry);
   if (std::has_single_bit(EntrySize)) {
-    uint32_t shift = mozilla::FloorLog2(EntrySize);
+    uint32_t shift = std::countr_zero(EntrySize);
     lshiftPtr(Imm32(shift), hashIndex, scratch);
   } else {
     // Note: this is provided as a fallback. Faster paths are possible for many

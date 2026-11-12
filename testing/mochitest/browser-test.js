@@ -62,9 +62,13 @@ const SIMPLETEST_OVERRIDES = [
 ];
 
 // An uncaught error with one of these names, from any process, fails the
-// running test. Currently this is only the accesskey check by menupopup and
-// panel-list code.
-const FAILING_UNCAUGHT_ERROR_NAMES = ["AccessKeyConflictError"];
+// running test: the accesskey check by menupopup and panel-list code, and
+// session store's schema check when browser.sessionstore.debug.validate_state
+// is set.
+const FAILING_UNCAUGHT_ERROR_NAMES = [
+  "AccessKeyConflictError",
+  "SessionStateValidationError",
+];
 
 setTimeout(testInit, 0);
 
@@ -1693,6 +1697,7 @@ Tester.prototype = {
     // Make sure the window is raised before starting the next test.
     this.SimpleTest.waitForFocus(() => {
       if (this.done) {
+        Services.obs.notifyObservers(null, "mochitest-leave-chaos-mode");
         if (!this._shouldCheckForLeaks) {
           this.finish();
           return;
@@ -2124,6 +2129,7 @@ Tester.prototype = {
               // here: waiting on TabDestroyObserver can hang a session that
               // has already timed out.
               self.ClickChecks.forgetMouseDownState();
+              Services.obs.notifyObservers(null, "mochitest-leave-chaos-mode");
               if (self._shouldCheckForLeaks) {
                 self._releaseResourcesKeptAliveUntilShutdown();
                 await self._collectAndCheckForLeakedWindows(true);

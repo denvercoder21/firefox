@@ -61,6 +61,7 @@ var gExceptionPaths = [
   // wasm is not available.
   "resource://pdf.js/web/wasm/openjpeg_nowasm_fallback.js",
   "resource://pdf.js/web/wasm/jbig2_nowasm_fallback.js",
+  "resource://pdf.js/web/wasm/hellbox_nowasm_fallback.js",
 
   // Exclude the form autofill path that has been moved out of the extensions to
   // toolkit, see bug 1691821.
@@ -69,7 +70,7 @@ var gExceptionPaths = [
   "resource://gre/localization/en-US/toolkit/formautofill",
 
   // Exclude all services-automation because they are used through webdriver
-  "resource://gre/modules/services-automation/",
+  "moz-src:///services/automation/",
 
   // Paths from this folder are constructed in NetErrorParent.sys.mjs based on
   // the type of cert or net error the user is encountering.
@@ -206,7 +207,7 @@ var allowlist = [
   // extensions/pref/autoconfig/src/nsReadConfig.cpp
   { file: "resource://gre/defaults/autoconfig/prefcalls.js" },
 
-  // browser/components/preferences/moreFromMozilla.js
+  // browser/components/preferences/config/moreFromMozilla.mjs
   // These files URLs are constructed programatically at run time.
   {
     file: "chrome://browser/content/preferences/more-from-mozilla-qr-code-simple.svg",
@@ -266,18 +267,6 @@ var allowlist = [
   // Bug 1494170
   // (The references to these files are dynamically generated, so the test can't
   // find the references)
-  {
-    file: "chrome://devtools/skin/images/aboutdebugging-firefox-aurora.svg",
-    isFromDevTools: true,
-  },
-  {
-    file: "chrome://devtools/skin/images/aboutdebugging-firefox-beta.svg",
-    isFromDevTools: true,
-  },
-  {
-    file: "chrome://devtools/skin/images/aboutdebugging-firefox-release.svg",
-    isFromDevTools: true,
-  },
   { file: "chrome://devtools/skin/images/next.svg", isFromDevTools: true },
 
   // Bug 1526672
@@ -351,6 +340,16 @@ var allowlist = [
 
   // Bug 2078933: The widget dashboard will generate widgets with this module.
   { file: "moz-src:///browser/components/widgets/WidgetGenerator.sys.mjs" },
+
+  // Bug 2083829: The single page onboarding screen will consume these. They
+  // can be removed from this list once it lands.
+  {
+    file: "chrome://browser/content/aiwindow/components/smartwindow-option-select.mjs",
+  },
+  {
+    file: "chrome://browser/content/aiwindow/components/smartwindow-option-select.css",
+  },
+  { file: "chrome://browser/content/aiwindow/assets/model-choice-auto.svg" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD) {

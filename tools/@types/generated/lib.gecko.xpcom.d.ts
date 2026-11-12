@@ -21680,16 +21680,6 @@ interface nsIUtilityProcessTest extends nsISupports {
   testTelemetryProbes(): void;
 }
 
-// https://searchfox.org/firefox-main/source/toolkit/components/browser/nsIWebBrowser.idl
-
-/** <!-- binding_to(idl, interface_name, XPIDL_nsIWebBrowser) --> */
-interface nsIWebBrowser extends nsISupports {
-  /** <!-- binding_to(idl, attribute, XPIDL_nsIWebBrowser_containerWindow) --> */
-  containerWindow: nsIWebBrowserChrome;
-  /** <!-- binding_to(idl, attribute, XPIDL_nsIWebBrowser_contentDOMWindow) --> */
-  readonly contentDOMWindow: mozIDOMWindowProxy;
-}
-
 // https://searchfox.org/firefox-main/source/toolkit/components/browser/nsIWebBrowserChrome.idl
 
 /** <!-- binding_to(idl, interface_name, XPIDL_nsIWebBrowserChrome) --> */
@@ -22913,8 +22903,6 @@ interface nsIPrintSettings extends nsISupports, Enums<typeof nsIPrintSettings_Ou
   readonly kInitSaveUnwriteableMargins?: 16384;
   /** <!-- binding_to(idl, const, XPIDL_nsIPrintSettings_kInitSaveEdges) --> */
   readonly kInitSaveEdges?: 32768;
-  /** <!-- binding_to(idl, const, XPIDL_nsIPrintSettings_kInitSaveReversed) --> */
-  readonly kInitSaveReversed?: 65536;
   /** <!-- binding_to(idl, const, XPIDL_nsIPrintSettings_kInitSaveInColor) --> */
   readonly kInitSaveInColor?: 131072;
   /** <!-- binding_to(idl, const, XPIDL_nsIPrintSettings_kInitSaveOrientation) --> */
@@ -23040,8 +23028,6 @@ interface nsIPrintSettings extends nsISupports, Enums<typeof nsIPrintSettings_Ou
   paperHeight: double;
   /** <!-- binding_to(idl, attribute, XPIDL_nsIPrintSettings_paperSizeUnit) --> */
   paperSizeUnit: i16;
-  /** <!-- binding_to(idl, attribute, XPIDL_nsIPrintSettings_printReversed) --> */
-  printReversed: boolean;
   /** <!-- binding_to(idl, attribute, XPIDL_nsIPrintSettings_printInColor) --> */
   printInColor: boolean;
   /** <!-- binding_to(idl, attribute, XPIDL_nsIPrintSettings_orientation) --> */
@@ -27463,7 +27449,6 @@ interface nsIXPCComponents_Interfaces {
   nsIUrlListManager: nsJSIID<nsIUrlListManager>;
   nsIURLFormatter: nsJSIID<nsIURLFormatter>;
   nsIUtilityProcessTest: nsJSIID<nsIUtilityProcessTest>;
-  nsIWebBrowser: nsJSIID<nsIWebBrowser>;
   nsIWebBrowserChrome: nsJSIID<nsIWebBrowserChrome>;
   nsIWebBrowserPrint: nsJSIID<nsIWebBrowserPrint>;
   nsIWebBrowserPersist: nsJSIID<nsIWebBrowserPersist>;

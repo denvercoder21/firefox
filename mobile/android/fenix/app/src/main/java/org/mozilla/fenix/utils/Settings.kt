@@ -524,6 +524,16 @@ class Settings(
         )
 
     /**
+     * The [mozilla.components.concept.sync.FxAEntryPoint.entryName] of the latest authentication flow started by the
+     * app, or `null` if there is none. It is kept until a flow completes.
+     */
+    var lastAuthFlowEntrypoint: String?
+        get() = preferences.getString(lastAuthFlowEntrypointKey, null)
+        set(value) = preferences.edit { putString(lastAuthFlowEntrypointKey, value) }
+
+    private val lastAuthFlowEntrypointKey = appContext.getPreferenceKey(R.string.pref_key_last_auth_flow_entrypoint)
+
+    /**
      * Whether the `referrals` ping has already been submitted for this profile. A referral code must only ever be
      * reported once.
      */
@@ -736,7 +746,7 @@ class Settings(
                         packageManagerCompatHelper = packageManagerCompatHelper,
                         packageName = packageName,
                         logger = logger,
-                    )
+                    ) ?: 0L
                 } else {
                     0L
                 }
@@ -2479,7 +2489,7 @@ class Settings(
         )
 
     /**
-     * Whether the Sync sign-in card can be shown during initial onboarding for users whose Firefox install is
+     * Whether the pairing sync card can be shown during initial onboarding for users whose Firefox install is
      * attributed to a pairing campaign link.
      */
     var isPairingSignInPromptEnabled by
@@ -2933,7 +2943,7 @@ class Settings(
      *
      * `true` makes the IPProtection UI elements visible across the app, while `false` hides them.
      */
-    var isIPProtectionEnabled by
+    var overrideIPProtectionEnabled by
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_enable_ip_protection),
             default = false,
@@ -2987,7 +2997,7 @@ class Settings(
      * The flag is backed by a Nimbus `ip-protection` feature, with an option to override it through secret settings.
      */
     val isIPProtectionAvailable: Boolean
-        get() = FxNimbus.features.ipProtection.value().enabled || isIPProtectionEnabled
+        get() = FxNimbus.features.ipProtection.value().enabled || overrideIPProtectionEnabled
 
     /**
      * Tracks how many times the summarize menu item has been shown. Used to control highlight/badge visibility for
@@ -3059,12 +3069,20 @@ class Settings(
             default = 0,
         )
 
-    /** Feature flag that indicates if the Import Passwords feature is enabled. */
-    var importPasswordsFeatureFlagEnabled by
+    /** Feature flag to enable or disable Import Passwords feature through Secret Setting */
+    var overrideImportPasswordsEnabled by
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_enable_import_passwords),
             default = false,
         )
+
+    /**
+     * Indicates if the Import Passwords feature is available for the user.
+     *
+     * The flag is backed by a nimbus flag, with an option to override it through secret settings.
+     */
+    val isImportPasswordsAvailable: Boolean
+        get() = FxNimbus.features.importPasswords.value().enabled || overrideImportPasswordsEnabled
 
     /** Feature flag that indicates if the "Check Archived Version" button is shown on eligible error pages. */
     var isWaybackMachineEnabled by
@@ -3362,8 +3380,8 @@ class Settings(
 
     /**
      * User preference (local only) controlling whether the Google Lens integration is active when
-     * [googleLensIntegrationEnabled] is on. When false, the standard QR scanner is used and the "Open with Google Lens"
-     * image context menu entry is hidden.
+     * [googleLensIntegrationEnabled] is on. When false, the toolbar offers the QR scanner instead of Google Lens and
+     * the "Open with Google Lens" image context menu entry is hidden.
      */
     var googleLensIntegrationUserEnabled by
         booleanPreference(

@@ -7,8 +7,11 @@ use api::{BorderSide, BorderStyle, ColorF};
 use api::{NormalBorder as ApiNormalBorder, RepeatMode};
 use api::units::*;
 use crate::ellipse::Ellipse;
+use crate::frame_builder::FrameBuildingState;
 use crate::renderer::GpuBufferBuilderF;
 use crate::render_task::{RenderTask, RenderTaskKind};
+use crate::render_task_cache::{RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskParent, to_cache_size};
+use crate::render_task_graph::RenderTaskId;
 use crate::gpu_types::{BorderInstance, BorderInstanceGpuData, BorderSegment};
 use crate::prim_store::NinePatchDescriptor;
 use crate::util::{lerp, RectHelpers};
@@ -35,10 +38,6 @@ const MAX_SQUARE_DOT_WIDTH: f32 = 2.0;
 //           the border cache key than duplicating
 //           all the border structs with hashable
 //           variants...
-
-// `BorderRadiusAu` now lives in `webrender_api` so builder-side interning keys
-// can reference it. Re-exported here to keep existing references working.
-pub use api::key_types::BorderRadiusAu;
 
 // `BorderSideAu` (with its `From` conversions to/from the api border types) now
 // lives in `webrender_api::key_types` so builder-side interning keys can
@@ -529,19 +528,36 @@ impl NormalBorderSegment {
         bounds
     }
 
-    pub fn render_task(
+    pub fn request_render_task(
         &self,
-        cache_size: DeviceIntSize,
         border: &ApiNormalBorder,
-        scale: LayoutToDeviceScale,
-        gpu_buffer: &mut GpuBufferBuilderF,
-    ) -> RenderTask {
-        RenderTask::new_dynamic(
-            cache_size,
-            RenderTaskKind::new_border_segment(build_border_instances(
-                &self.cache_key, cache_size, border, scale, gpu_buffer,
-            )),
-        )
+        scale: &mut LayoutToDeviceScale,
+        parent: RenderTaskParent,
+        frame_state: &mut FrameBuildingState,
+    ) -> (RenderTaskId, DeviceIntSize) {
+        let cache_size = to_cache_size(self.task_size, scale);
+        let cache_key = RenderTaskCacheKey {
+            kind: RenderTaskCacheKeyKind::BorderSegment(self.cache_key.clone()),
+            origin: DeviceIntPoint::zero(),
+            size: cache_size,
+        };
+        let task_id = frame_state.resource_cache.request_render_task(
+            Some(cache_key),
+            false,
+            parent,
+            &mut frame_state.frame_gpu_data.f32,
+            frame_state.rg_builder,
+            &mut frame_state.surface_builder,
+            &mut |rg_builder, gpu_buffer| {
+                rg_builder.add().init(RenderTask::new_dynamic(
+                    cache_size,
+                    RenderTaskKind::new_border_segment(build_border_instances(
+                        &self.cache_key, cache_size, border, *scale, gpu_buffer,
+                    )),
+                ))
+            },
+        );
+        (task_id, cache_size)
     }
 
     pub fn repetition(&self, cache_size: DeviceIntSize) -> (LayoutSize, LayoutSize) {

@@ -783,7 +783,7 @@ pref("browser.urlbar.contextualSearch.enabled", true);
 pref("browser.urlbar.addons.featureGate", false);
 
 // Feature gate pref for semanticHistory
-#if defined(EARLY_BETA_OR_EARLIER) || defined(MOZ_DEV_EDITION)
+#ifdef NIGHTLY_BUILD
 pref("places.semanticHistory.featureGate", true);
 #else
 pref("places.semanticHistory.featureGate", false);
@@ -1003,10 +1003,6 @@ pref("browser.search.serpEventTelemetryCategorization.enabled", true);
 // experiment info (and not actual SERP categorizations) at startup.
 pref("browser.search.serpMetricsRecordedCounter", 0);
 
-// Search Bar removal from the toolbar for users who haven’t used it in 120
-// days
-pref("browser.search.widget.removeAfterDaysUnused", 120);
-
 // Feature gate for searchbar based on urlbar code.
 pref("browser.search.widget.new", true);
 
@@ -1204,6 +1200,9 @@ pref("browser.tabs.groups.hoverPreview.enabled", true);
 pref("browser.tabs.groups.alternateMenu", true);
 // Number of times the "Tab group saved" confirmation hint has been shown
 pref("browser.tabs.groups.saveHintShownCount", 0);
+// Whether the hint pointing to the application menu has been shown after
+// removing the Tab Groups button
+pref("browser.tabs.groups.removedHintShown", false);
 
 pref("browser.tabs.groups.smart.enabled", true);
 
@@ -1868,6 +1867,11 @@ pref("services.sync.prefs.sync.browser.urlbar.suggest.openpage", true);
 pref("services.sync.prefs.sync.browser.urlbar.suggest.searches", true);
 pref("services.sync.prefs.sync.browser.urlbar.suggest.topsites", true);
 pref("services.sync.prefs.sync.browser.urlbar.suggest.engines", true);
+pref("services.sync.prefs.sync.browser.urlbar.suggest.quickactions", true);
+pref("services.sync.prefs.sync.browser.urlbar.suggest.recentsearches", true);
+pref("services.sync.prefs.sync.browser.urlbar.suggest.quicksuggest.all", true);
+pref("services.sync.prefs.sync.browser.urlbar.suggest.quicksuggest.sponsored", true);
+pref("services.sync.prefs.sync.browser.urlbar.quicksuggest.online.enabled", true);
 pref("services.sync.prefs.sync.dom.disable_open_during_load", true);
 pref("services.sync.prefs.sync.dom.disable_window_flip", true);
 pref("services.sync.prefs.sync.dom.disable_window_move_resize", true);
@@ -2119,8 +2123,7 @@ pref("messaging-system.askForFeedback", true);
 // It's enabled by default, but could be disabled to force ASRouter to use the local files.
 pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
 
-// These prefs control if Discovery Stream is enabled.
-pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
+// These prefs control Discovery Stream.
 pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
 pref("browser.newtabpage.activity-stream.discoverystream.hybridLayout.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.hideCardBackground.enabled", false);
@@ -2138,14 +2141,14 @@ pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabl
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
 
 // For both spoc and tiles, count corresponds to the matching placement. So the first placement in an array corresponds to the first count.
-pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs.counts", "1,1,1,1,1,1");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts", "1, 1, 1, 1, 1, 1");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6, newtab_stories_7, newtab_stories_8, newtab_stories_9, newtab_stories_10, newtab_stories_11, newtab_stories_12, newtab_billboard");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs.counts", "1,1,1,1,1,1,1,1,1,1,1,1,1");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6, newtab_stories_7, newtab_stories_8, newtab_stories_9, newtab_stories_10, newtab_stories_11, newtab_stories_12");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts", "1,1,1,1,1,1,1,1,1,1,1,1");
 pref("browser.newtabpage.activity-stream.discoverystream.placements.tiles", "newtab_tile_1, newtab_tile_2, newtab_tile_3");
 pref("browser.newtabpage.activity-stream.discoverystream.placements.tiles.counts", "1, 1, 1");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners", "");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners.counts", "");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners", "newtab_billboard");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners.counts", "1");
 
 // This is a 0-based index, for consistency with the other position CSVs,
 // but Contile positions are a 1-based index, so we end up adding 1 to these before using them.
@@ -2493,7 +2496,7 @@ pref("browser.smartwindow.manageTabs.includeChatTab", false);
 
 // Smart Window Agent
 pref("browser.smartwindow.agent.enabled", true);
-pref("browser.smartwindow.agent.supportedRegions", "US,CA");
+pref("browser.smartwindow.agent.supportedRegions", '[["US",["*"]],["CA",["en-*"]],["GB",["en-*"]]]');
 // Toolbar button that opens the monitor creation panel (bug 2062113).
 pref("browser.smartwindow.agent.toolbar.enabled", true);
 // Announces the monitor agent as a new feature with a dot on the toolbar
@@ -2536,11 +2539,15 @@ pref("browser.smartwindow.smartbarMentions.loglevel", "Error");
 pref("browser.smartwindow.telemetryLogLevel", "Error");
 
 pref("browser.widgets.generated.enabled", false);
+pref(
+  "sidebar.newTool.migration.widgets",
+  '{"visibilityPref":"browser.widgets.generated.enabled"}'
+);
 pref("browser.widgets.generated.loglevel", "Warn");
 pref("browser.widgets.generated.endpoint", "");
 pref("browser.widgets.generated.apiKey", "");
 pref("browser.widgets.generated.model", "");
-pref("browser.widgets.generated.maxTurns", 20);
+pref("browser.widgets.generated.maxTurns", 30);
 pref("browser.widgets.generated.localPrompt", false);
 
 // Block insecure active content on https pages
@@ -3625,7 +3632,11 @@ pref("devtools.debugger.features.async-captured-stacks", true);
 pref("devtools.debugger.features.async-live-stacks", false);
 
 // This supports showing stylesheet sources in the debugger
-pref("devtools.debugger.features.stylesheets-in-debugger", false);
+#if defined(NIGHTLY_BUILD)
+  pref("devtools.debugger.features.stylesheets-in-debugger", true);
+#else
+  pref("devtools.debugger.features.stylesheets-in-debugger", false); 
+#endif
 
 // When debugging a website, this pref controls if extension content scripts applied
 // to the currently debugged page should be shown in the Debugger Source Tree
@@ -3798,7 +3809,7 @@ pref("browser.backup.template.fallback-download.release", "https://www.firefox.c
 pref("browser.backup.template.fallback-download.beta", "https://www.firefox.com/channel/desktop/?utm_medium=firefox-desktop&utm_source=html-backup");
 pref("browser.backup.template.fallback-download.aurora", "https://www.firefox.com/channel/desktop/?utm_medium=firefox-desktop&utm_source=html-backup");
 pref("browser.backup.template.fallback-download.nightly", "https://www.firefox.com/channel/desktop/?utm_medium=firefox-desktop&utm_source=html-backup");
-pref("browser.backup.template.fallback-download.esr", " https://www.firefox.com/download/all/desktop-esr/?utm_medium=firefox-desktop&utm_source=html-backup");
+pref("browser.backup.template.fallback-download.esr", "https://www.firefox.com/download/all/desktop-esr/?utm_medium=firefox-desktop&utm_source=html-backup");
 pref("browser.backup.errorCode", 0);
 pref("browser.backup.backup-retry-limit", 10);
 pref("browser.backup.disabled-on-idle-backup-retry", false);

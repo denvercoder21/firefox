@@ -440,17 +440,25 @@ def test_shared_bugbug_query(monkeypatch):
     monkeypatch.setattr(decision.create, "testing", False)
     monkeypatch.delenv(PUSH_SCHEDULES_ENV, raising=False)
     started = []
+    calls = []
+
+    class FakeProc:
+        def kill(self):
+            calls.append("kill")
+
+        def wait(self):
+            calls.append("wait")
 
     def fake_start_push_schedules(branch, rev, result_path):
         started.append((branch, rev, result_path))
-        return "future"
+        return FakeProc()
 
     monkeypatch.setattr(decision, "start_push_schedules", fake_start_push_schedules)
     options = {"project": "autoland", "head_rev": "abcdef"}
 
-    with decision.shared_bugbug_query(options) as future:
-        assert future == "future"
+    with decision.shared_bugbug_query(options) as yielded_path:
         [(branch, rev, result_path)] = started
+        assert yielded_path == result_path
         assert (branch, rev) == ("autoland", "abcdef")
         assert os.environ[PUSH_SCHEDULES_ENV] == result_path
         result_dir = os.path.dirname(result_path)
@@ -458,6 +466,7 @@ def test_shared_bugbug_query(monkeypatch):
         with open(result_path, "w") as fh:
             fh.write("{}")
 
+    assert calls == ["kill", "wait"]
     assert not os.path.exists(result_dir)
     assert PUSH_SCHEDULES_ENV not in os.environ
 
@@ -470,8 +479,8 @@ def test_shared_bugbug_query_unused(monkeypatch):
     monkeypatch.setattr(decision, "start_push_schedules", None)
     options = {"project": "mozilla-central", "head_rev": "abcdef"}
 
-    with decision.shared_bugbug_query(options) as future:
-        assert future is None
+    with decision.shared_bugbug_query(options) as result_path:
+        assert result_path is None
         assert PUSH_SCHEDULES_ENV not in os.environ
 
 

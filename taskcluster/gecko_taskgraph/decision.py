@@ -35,7 +35,12 @@ from .actions import render_actions_json
 from .files_changed import get_changed_files
 from .parameters import get_app_version, get_version
 from .util.backstop import ANDROID_PERFTEST_BACKSTOP_INDEX, BACKSTOP_INDEX, is_backstop
-from .util.bugbug import PUSH_SCHEDULES_ENV, push_schedules, start_push_schedules
+from .util.bugbug import (
+    PUSH_SCHEDULES_ENV,
+    push_schedules,
+    read_push_schedules_data,
+    start_push_schedules,
+)
 from .util.hg import get_hg_revision_metadata
 from .util.partials import populate_release_history
 from .util.taskcluster import insert_index
@@ -171,6 +176,13 @@ PER_PROJECT_PARAMETERS = {
     "staging-firefox": {
         "target_tasks_method": "firefox_pull_request_tasks",
     },
+    # The code review bot pushes the stacks it analyzes here; it ran on try
+    # before, so keep the same parameters.
+    "firefox-crb": {
+        "enable_always_target": True,
+        "target_tasks_method": "try_tasks",
+        "release_type": "nightly",
+    },
     # the default parameters are used for projects that do not match above.
     "default": {
         "target_tasks_method": "default",
@@ -227,7 +239,7 @@ def build_decision_perfherder_data(trust_domain, params_time, taskgraph_time):
     }
 
 
-def taskgraph_decision(options, parameters, bugbug_future=None):
+def taskgraph_decision(options, parameters, bugbug_result_path=None):
     """
     Run the decision task.  This function implements `mach taskgraph decision`,
     and is responsible for
@@ -238,8 +250,8 @@ def taskgraph_decision(options, parameters, bugbug_future=None):
      * calling TaskCluster APIs to create the graph
 
     The ``parameters`` argument must be a pre-resolved ``Parameters`` object.
-    ``bugbug_future`` is the `Future` yielded by ``shared_bugbug_query``, if
-    any; its result is stored as an artifact if it is ready.
+    ``bugbug_result_path`` is the path yielded by ``shared_bugbug_query``, if
+    any; the result written there is stored as an artifact if it is ready.
     """
 
     decision_task_id = os.environ["TASK_ID"]
@@ -332,13 +344,19 @@ def taskgraph_decision(options, parameters, bugbug_future=None):
         )
 
         # write bugbug scheduling information if it was invoked or is ready
+        bugbug_data = None
         if push_schedules.cache_info().currsize > 0:
-            write_artifact(
-                "bugbug-push-schedules.json",
-                push_schedules(tgg.parameters["project"], tgg.parameters["head_rev"]),
+            bugbug_data = push_schedules(
+                tgg.parameters["project"], tgg.parameters["head_rev"]
             )
-        elif bugbug_future and bugbug_future.done() and not bugbug_future.exception():
-            write_artifact("bugbug-push-schedules.json", bugbug_future.result())
+        elif bugbug_result_path:
+            bugbug_data = read_push_schedules_data(
+                bugbug_result_path,
+                tgg.parameters["project"],
+                tgg.parameters["head_rev"],
+            )
+        if bugbug_data is not None:
+            write_artifact("bugbug-push-schedules.json", bugbug_data)
         else:
             logger.info(
                 "Bugbug results not available, not writing bugbug-push-schedules.json"
@@ -590,7 +608,8 @@ def shared_bugbug_query(options):
     """Start the bugbug query for the push, if the test kinds will use it, and
     share its result with them for the duration of the context.
 
-    Yields the query's `Future`, or None if it wasn't started.
+    Yields the path the query writes its result to, or None if it wasn't
+    started.
     """
     if create.testing or not uses_bugbug(options):
         yield None
@@ -599,9 +618,12 @@ def shared_bugbug_query(options):
     result_dir = tempfile.mkdtemp(prefix="bugbug-")
     result_path = os.path.join(result_dir, "bugbug-push-schedules.json")
     os.environ[PUSH_SCHEDULES_ENV] = result_path
+    proc = start_push_schedules(options["project"], options["head_rev"], result_path)
     try:
-        yield start_push_schedules(options["project"], options["head_rev"], result_path)
+        yield result_path
     finally:
+        proc.kill()
+        proc.wait()
         os.environ.pop(PUSH_SCHEDULES_ENV, None)
         shutil.rmtree(result_dir, ignore_errors=True)
 

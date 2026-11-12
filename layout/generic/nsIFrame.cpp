@@ -34,6 +34,7 @@
 #include "mozilla/ReflowInput.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/SVGClipPathFrame.h"
 #include "mozilla/SVGIntegrationUtils.h"
 #include "mozilla/SVGMaskFrame.h"
 #include "mozilla/SVGObserverUtils.h"
@@ -617,6 +618,14 @@ bool nsIFrame::IsAtomicInline() const {
          (IsReplaced() || !StyleDisplay()->IsInlineInsideStyle());
 }
 
+bool nsIFrame::IsNonReplacedInline() const {
+  // Note that width/height don't apply to ruby boxes either, see
+  // https://drafts.csswg.org/css-ruby/#box-style
+  return StyleDisplay()->IsInlineInsideStyle() && !IsReplaced() &&
+         !IsFieldSetFrame() && !IsBlockFrame() && !IsScrollContainerFrame() &&
+         !IsColumnSetWrapperFrame();
+}
+
 bool nsIFrame::ShouldPropagateRepaintsToRoot() const {
   if (!IsPrimaryFrame()) {
     // special case for table frames because style images are associated to the
@@ -648,7 +657,7 @@ void nsIFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
   mContent = aContent;
   mParent = aParent;
-  MOZ_ASSERT(!mParent || PresShell() == mParent->PresShell());
+  MOZ_RELEASE_ASSERT(!mParent || PresContext() == mParent->PresContext());
 
   if (aPrevInFlow) {
     mWritingMode = aPrevInFlow->GetWritingMode();
@@ -1990,6 +1999,12 @@ bool nsIFrame::GetBorderRadii(const nsSize& aFrameSize,
     return false;
   }
 
+  // https://drafts.csswg.org/css-borders-4/#border-shape: border-shape
+  // replaces the border-radius geometry.
+  if (!StyleBorder()->mBorderShape.IsNone()) {
+    return false;
+  }
+
   const auto& radii = StyleBorder()->mBorderRadius;
   const auto& cornerShape = StyleBorder()->mCornerShape;
   const bool hasRadii = ComputeBorderRadii(radii, cornerShape, aFrameSize,
@@ -3137,14 +3152,25 @@ static Maybe<nsRect> ComputeClipForMaskItem(
       combinedClip = Some(ThebesRect(*result));
     }
   } else if (aMaskUsage.ShouldApplyClipPath()) {
-    gfxRect result = SVGUtils::GetBBox(
-        aMaskedFrame,
-        {SVGBBoxFlag::IncludeClipped, SVGBBoxFlag::IncludeFillGeometry,
-         SVGBBoxFlag::IncludeMarkers, SVGBBoxFlag::IncludeStroke,
-         SVGBBoxFlag::DoNotClipToBBoxOfContentInsideClipPath});
+    nsIFrame* firstFrame =
+        nsLayoutUtils::FirstContinuationOrIBSplitSibling(aMaskedFrame);
+    SVGClipPathFrame* clipPathFrame = nullptr;
+    SVGObserverUtils::GetAndObserveClipPath(firstFrame, &clipPathFrame);
+    MOZ_ASSERT(clipPathFrame, "ShouldApplyClipPath needs a clip path");
+    gfxRect result = clipPathFrame
+                         ->GetBBoxForClipPathFrame(
+                             clipPathFrame->GetClipPathTransform(aMaskedFrame))
+                         .ToThebesRect();
     combinedClip = Some(
         ThebesRect((CSSRect::FromUnknownRect(ToRect(result)) * cssToDevScale)
                        .ToUnknownRect()));
+    // The clip path is in the user space of the first continuation, which is
+    // where SVGIntegrationUtils paints it too.
+    if (firstFrame != aMaskedFrame) {
+      devPixelOffsetToUserSpace = nsLayoutUtils::PointToGfxPoint(
+          nsLayoutUtils::ComputeOffsetToUserSpace(aBuilder, firstFrame),
+          devPixelRatio);
+    }
   } else {
     // The code for this case is adapted from ComputeMaskGeometry().
 
@@ -3910,7 +3936,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // like a separator between the VTCapture the outside, if it is transformed.
   if (capturedByViewTransition) {
     resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
-        aBuilder, this, &resultList, nullptr, false);
+        aBuilder, this, &resultList, nullptr,
+        nsDisplayViewTransitionCapture::Kind::Element);
     createdContainer = true;
     MarkAsIsolated();
     // We don't want the capture to be clipped, so we do this _after_ building
@@ -5033,6 +5060,16 @@ Maybe<mozilla::StyleUserSelect> nsIFrame::UsedUserSelectRecurse(
     return Some(StyleUserSelect::None);
   }
 
+  // nsTableColFrame is inserted after nsTableRowGroupFrame and its content is
+  // the corresponding <col> if one exists, or <colgroup> or <table> otherwise.
+  // That means the frame tree order is different from the DOM tree order of
+  // HTML table so that the caret navigation may return start of the <table>
+  // after end of the last cell. Fortunately, it's invisible from user's
+  // selection point of view. So, we should be able to treat it as unselectable.
+  if (aFrame->IsTableColFrame()) {
+    return Some(StyleUserSelect::None);
+  }
+
   // Per https://drafts.csswg.org/css-ui-4/#content-selection:
   //
   // The used value is the same as the computed value, except:
@@ -5606,6 +5643,28 @@ nsresult nsIFrame::SelectWordOrLinkAtPoint(
       CaretAssociationHint::After);
 }
 
+nsIFrame::ContentOffsets nsIFrame::GetContentOffsetsFromPointForSelection(
+    const nsPoint& aPoint) {
+  // A text control's own frames use its independent selection, where its
+  // editor's anonymous content belongs.
+  const nsFrameSelection* const frameSelection = GetConstFrameSelection();
+  const Element* const independentSelectionRoot =
+      frameSelection ? frameSelection->GetIndependentSelectionRootElement()
+                     : nullptr;
+  ContentOffsets offsets = GetContentOffsetsFromPoint(
+      aPoint, independentSelectionRoot
+                  ? SKIP_HIDDEN
+                  : SKIP_HIDDEN | IGNORE_NATIVE_ANONYMOUS_SUBTREE);
+  if (offsets.content && independentSelectionRoot &&
+      !independentSelectionRoot->Contains(offsets.content)) {
+    // The text control's independent selection cannot use offsets outside
+    // its editor, e.g. if a press on its padding resolves to an ancestor
+    // with `user-select: all`.
+    return ContentOffsets();
+  }
+  return offsets;
+}
+
 nsresult nsIFrame::SelectByTypeAtPoint(const nsPoint& aPoint,
                                        nsSelectionAmount aBeginAmountType,
                                        nsSelectionAmount aEndAmountType,
@@ -5615,8 +5674,7 @@ nsresult nsIFrame::SelectByTypeAtPoint(const nsPoint& aPoint,
     return NS_OK;
   }
 
-  ContentOffsets offsets = GetContentOffsetsFromPoint(
-      aPoint, SKIP_HIDDEN | IGNORE_NATIVE_ANONYMOUS_SUBTREE);
+  ContentOffsets offsets = GetContentOffsetsFromPointForSelection(aPoint);
   if (!offsets.content) {
     return NS_ERROR_FAILURE;
   }
@@ -8791,6 +8849,14 @@ static nsRect ComputeEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect,
     nsRect outsetRect(nsPoint(0, 0), aNewSize);
     outsetRect.Inflate(outsetMargin);
     r.UnionRect(r, outsetRect);
+  }
+
+  // A border-shape with margin-box geometry paints into the margin area, and
+  // a single shape is stroked centered on the path.
+  if (!styleBorder->mBorderShape.IsNone()) {
+    nsRect shapeRect(nsPoint(0, 0), aNewSize);
+    shapeRect.Inflate(nsCSSRendering::BorderShapePaintOverflow(aFrame));
+    r.UnionRect(r, shapeRect);
   }
 
   // Note that we don't remove the outlineInnerRect if a frame loses outline

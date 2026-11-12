@@ -775,6 +775,11 @@ class nsContentUtils {
    *  Pass a cache object as aIndexCache if you expect to repeatedly call this
    * function with the same value as aBoundary1 or aBoundary2.
    *
+   *  If aAncestorLimiter is non-null, it must be an inclusive ancestor of both
+   * containers in aKind.  Ancestor walks stop there.  Same-container
+   * comparisons only assert containment in debug builds.  Differing-container
+   * comparisons return Nothing if a chain misses the limiter.
+   *
    *  @return -1 if point1 < point2,
    *          1 if point1 > point2,
    *          0 if point1 == point2.
@@ -785,7 +790,8 @@ class nsContentUtils {
   static mozilla::Maybe<int32_t> ComparePoints(
       const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
       const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2,
-      NodeIndexCache* aIndexCache = nullptr);
+      NodeIndexCache* aIndexCache = nullptr,
+      const nsINode* aAncestorLimiter = nullptr);
 
   /**
    * DO NOT USE this method for comparing the points in new code.  this method
@@ -1996,6 +2002,18 @@ class nsContentUtils {
   // Warning: Only use this for safe callers that do their own sanitization like
   // setHTML().
   static const int32_t kParseFragmentNoSanitization = -2;
+
+  /**
+   * Whether ParseFragmentHTML() and ParseFragmentXML() sanitize a fragment
+   * parsed for a node with aPrincipal, given their aFlags.
+   */
+  static bool ShouldSanitizeFragment(nsIPrincipal* aPrincipal, int32_t aFlags);
+
+  /**
+   * Whether ParseFragmentHTML(), ParseDocumentHTML() or ParseFragmentXML() is
+   * running, which they don't allow to be reentered.
+   */
+  static bool IsFragmentParsingActive() { return sFragmentParsingActive; }
 
   enum class SanitizerMode { Safe, Unsafe };
 
@@ -3866,7 +3884,8 @@ class nsContentUtils {
   template <TreeKind aKind>
   static mozilla::Maybe<int32_t> ComparePointsWithIndices(
       const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
-      uint32_t aOffset2, NodeIndexCache* aIndexCache = nullptr);
+      uint32_t aOffset2, NodeIndexCache* aIndexCache = nullptr,
+      const nsINode* aAncestorLimiter = nullptr);
 
   /**
    * Helper method for ComparePoints() and ComparePointsWithIndices(). This

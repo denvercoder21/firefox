@@ -9,6 +9,7 @@ channels:
   - beta
   - nightly
   - developer
+# Keep `nimbus.manifestDependencies` in `build.gradle` in sync when changing `includes` or `import`.
 includes:
   - onboarding.fml.yaml
   - messaging-fenix.fml.yaml
@@ -259,6 +260,14 @@ features:
       - channel: beta
         value:
           enabled: true
+
+  import-passwords:
+    description: A feature that lets users import passwords from a file exported by another browser or password manager.
+    variables:
+      enabled:
+        type: Boolean
+        description: If true, the import passwords feature will be enabled.
+        default: false
 
   installation:
     description: A feature that checks for reinstalls.
@@ -1138,6 +1147,10 @@ features:
         description: The final date for the promotion to end. This needs to be an ISO 8601 formatted date (i.e. YYYY-MM-DD).
         type: String
         default: "2026-08-31"
+      gpi-data-limit-gigabytes:
+        description: Specifies the VPN data limit in GB to show in the onboarding prompt when using without an account (through GPI)
+        type: Int
+        default: 5
     defaults:
       - channel: developer
         value:
@@ -1317,7 +1330,7 @@ features:
       enabled:
         description: If true, run the one-time migration that converts existing Collections into Tab Groups.
         type: Boolean
-        default: false
+        default: true
 
   oled-theme:
     description: Feature to provide the OLED theme option for users on Firefox for Android.
@@ -1329,11 +1342,11 @@ features:
 
   pairing-signin-prompt:
     description: >
-      Controls the Sync sign-in card shown during initial onboarding to users who installed Firefox
+      Controls the pairing sync card shown during initial onboarding to users who installed Firefox
       through a pairing link.
     variables:
       enabled:
-        description: Whether the Sync sign-in card can be shown during initial onboarding.
+        description: Whether the pairing sync card can be shown during initial onboarding.
         type: Boolean
         default: false
       campaign-utm-content:

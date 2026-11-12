@@ -361,7 +361,6 @@
 #include "nsIAuthPrompt.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIBFCacheEntry.h"
-#include "nsIBaseWindow.h"
 #include "nsIBrowserChild.h"
 #include "nsIBrowserUsage.h"
 #include "nsICSSLoaderObserver.h"
@@ -1052,6 +1051,9 @@ Document* ExternalResourceMap::RequestResource(
     // chances are it failed for good reasons (security check, etc).
     // This must be done outside the WithEntryHandle functor, as it accesses
     // mPendingLoads.
+    // PendingLoad::StartLoad does the same if it had to defer AsyncOpen and
+    // that failed. It is called inside a script runnner (outside of
+    // WithEntryHandle functor) so it's safe.
     AddExternalResource(clone, nullptr, nullptr, aDisplayDocument);
   }
 
@@ -1349,7 +1351,27 @@ nsresult ExternalResourceMap::PendingLoad::StartLoad(
 
   mURI = aURI;
 
-  return channel->AsyncOpen(this);
+  if (nsContentUtils::IsSafeToRunScript()) {
+    return channel->AsyncOpen(this);
+  }
+
+  nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+      "ExternalResourceMap::PendingLoad::StartLoad",
+      [self = RefPtr{this}, channel]() MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+        ExternalResourceMap& map =
+            self->mDisplayDocument->ExternalResourceMap();
+        if (map.HaveShutDown() || NS_SUCCEEDED(channel->AsyncOpen(self))) {
+          return;
+        }
+        // Same handling as for a synchronous AsyncOpen failure in
+        // ExternalResourceMap::RequestResource: make sure we don't thrash
+        // things by trying this load again, since chances are it failed for
+        // good reasons (security check, etc).
+        const nsCOMPtr<nsIURI> uri = self->mURI;
+        const RefPtr<Document> displayDocument = self->mDisplayDocument;
+        map.AddExternalResource(uri, nullptr, nullptr, displayDocument);
+      }));
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS(ExternalResourceMap::LoadgroupCallbacks,
@@ -2764,6 +2786,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFontFaceSet)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPreviouslyFocusedContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReadyForIdle)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParsedPromise)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContentLoadedPromise)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLoadedPromise)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocumentL10n)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFragmentDirective)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHighlightRegistry)
@@ -2858,10 +2883,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
   }
 
   // XXX: This should be not needed once bug 1569185 lands.
-  for (const auto& entry : tmp->mL10nProtoElements) {
-    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mL10nProtoElements key");
+  for (const auto& entry : tmp->mUntranslatedL10nProtoElements) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb,
+                                       "mUntranslatedL10nProtoElements key");
     cb.NoteXPCOMChild(entry.GetKey());
-    CycleCollectionNoteChild(cb, entry.GetWeak(), "mL10nProtoElements value");
+    CycleCollectionNoteChild(cb, entry.GetWeak(),
+                             "mUntranslatedL10nProtoElements value");
   }
 
   for (size_t i = 0; i < tmp->mPendingFrameStaticClones.Length(); ++i) {
@@ -2930,6 +2957,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFontFaceSet)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPreviouslyFocusedContent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mReadyForIdle)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mParsedPromise)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mContentLoadedPromise)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mLoadedPromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocumentL10n)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFragmentDirective)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHighlightRegistry)
@@ -3050,7 +3080,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
 
   tmp->UnregisterFromMemoryReportingForDataDocument();
 
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mL10nProtoElements)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mUntranslatedL10nProtoElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -3800,22 +3830,18 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     mChannel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
   }
 
-  // If this document is being loaded by a docshell, copy its sandbox flags
-  // to the document, and store the fullscreen enabled flag. These are
-  // immutable after being set here.
+  // Get our sandbox flags from the LoadInfo for this document.
+  // These are immutable after being set here.
   nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aContainer);
-
-  // If this is an error page, don't inherit sandbox flags
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+  mSandboxFlags = loadInfo->GetSandboxFlags();
+  if (docShell) {
+    WarnIfSandboxIneffective(docShell, mSandboxFlags, aChannel);
+  }
 
   if (!IsTopLevelContentDocument()) {
     SetAncestorOriginsList(
         ProduceAncestorOriginsList(loadInfo->AncestorPrincipals()));
-  }
-
-  if (docShell && !loadInfo->GetLoadErrorPage()) {
-    mSandboxFlags = loadInfo->GetSandboxFlags();
-    WarnIfSandboxIneffective(docShell, mSandboxFlags, GetChannel());
   }
 
   mClassificationFlags = AntiTrackingUtils::GetClassificationFlags(aChannel);
@@ -4624,6 +4650,9 @@ void Document::SetDocumentURI(nsIURI* aURI) {
   if (!equalBases) {
     mCachedURLData = nullptr;
     RefreshLinkHrefs();
+    if (mSpeculationRules) {
+      mSpeculationRules->UpdateForBaseURLChange();
+    }
   }
 
   // Tell our WindowGlobalParent that the document's URI has been changed.
@@ -5019,7 +5048,7 @@ void Document::OnParsingCompleted() {
   }
 }
 
-void Document::InitialTranslationCompleted(bool aL10nCached) {
+void Document::InitialTranslationCompleted() {
   if (mDocumentL10n && mDocumentL10n->mBlockingLayout) {
     // This means we blocked the load event in LocalizationLinkAdded.  It's
     // important that the load blocker removal here be async, because our caller
@@ -5029,12 +5058,7 @@ void Document::InitialTranslationCompleted(bool aL10nCached) {
     UnblockOnload(/* aFireSync = */ false);
   }
 
-  mL10nProtoElements.Clear();
-
-  nsXULPrototypeDocument* proto = GetPrototype();
-  if (proto) {
-    proto->SetIsL10nCached(aL10nCached);
-  }
+  mUntranslatedL10nProtoElements.Clear();
 }
 
 bool Document::AllowsL10n() const {
@@ -6594,7 +6618,9 @@ HTMLEditor* Document::GetHTMLEditor() const {
 }
 
 nsresult Document::EditingStateChanged() {
-  if (mRemovedFromDocShell) {
+  // Don't allow editing on non-HTML/XHTML documents.  Return NS_OK so that the
+  // setter of designMode on non-HTML documents does not fail.
+  if (mRemovedFromDocShell || !IsHTMLOrXHTML()) {
     return NS_OK;
   }
 
@@ -6692,13 +6718,6 @@ nsresult Document::EditingStateChanged() {
   bool makeWindowEditable = mEditingState == EditingState::eOff;
   bool spellRecheckAll = false;
   bool putOffToRemoveScriptBlockerUntilModifyingEditingState = false;
-
-  if (makeWindowEditable && NS_WARN_IF(!IsHTMLOrXHTML())) {
-    // Don't allow editing on non-HTML/XHTML documents.
-    // Return NS_OK so that the setter of designMode on non-HTML documents
-    // does not fail.
-    return NS_OK;
-  }
 
   RefPtr<HTMLEditor> htmlEditor;
   {
@@ -7631,6 +7650,9 @@ void Document::SetBaseURI(nsIURI* aURI) {
   mDocumentBaseURI = aURI;
   mCachedURLData = nullptr;
   RefreshLinkHrefs();
+  if (mSpeculationRules) {
+    mSpeculationRules->UpdateForBaseURLChange();
+  }
 }
 
 Result<OwningNonNull<nsIURI>, nsresult> Document::ResolveWithBaseURI(
@@ -8959,11 +8981,24 @@ void Document::DispatchContentLoadedEvents(bool aFinishSync) {
                         nullptr);
   }
 
+  // Resolved after the event so that its reactions run after every
+  // DOMContentLoaded listener, whatever event target they are on. The promise
+  // is fetched first because a listener can call document.open(), which
+  // replaces it with one for the next load.
+  RefPtr<Promise> contentLoaded;
+  if (StaticPrefs::dom_document_load_promises_enabled()) {
+    contentLoaded = GetContentLoaded(IgnoreErrors());
+  }
+
   // Fire a DOM event notifying listeners that this document has been
   // loaded (excluding images and other loads initiated by this
   // document).
   nsContentUtils::DispatchTrustedEvent(this, this, u"DOMContentLoaded"_ns,
                                        CanBubble::eYes, Cancelable::eNo);
+
+  if (contentLoaded) {
+    contentLoaded->MaybeResolveWithUndefined();
+  }
 
   if (auto* const window = GetInnerWindow()) {
     const RefPtr<ServiceWorkerContainer> serviceWorker =
@@ -10390,14 +10425,11 @@ void Document::DoNotifyPossibleTitleChange() {
   nsAutoString title;
   GetTitle(title);
 
-  if (RefPtr<PresShell> presShell = GetPresShell()) {
-    nsCOMPtr<nsISupports> container =
-        presShell->GetPresContext()->GetContainerWeak();
-    if (container) {
-      if (nsCOMPtr<nsIBaseWindow> docShellWin = do_QueryInterface(container)) {
-        docShellWin->SetTitle(title);
-      }
-    }
+  if (RefPtr<nsDocShell> docShell = nsDocShell::Cast(GetDocShell())) {
+    docShell->SetTitle(title);
+  }
+  if (nsCOMPtr<nsIAppWindow> appWin = GetAppWindowIfToplevelChrome()) {
+    appWin->SetTitle(title);
   }
 
   if (WindowGlobalChild* child = GetWindowGlobalChild()) {
@@ -10427,6 +10459,10 @@ already_AddRefed<MediaQueryList> Document::MatchMedia(
 void Document::SetMayStartLayout(bool aMayStartLayout) {
   mMayStartLayout = aMayStartLayout;
   if (MayStartLayout()) {
+    if (NodePrincipal()->IsSystemPrincipal() && !mChromeObserver) {
+      mChromeObserver = new ChromeObserver(this);
+      mChromeObserver->Init();
+    }
     // Before starting layout, check whether we're a toplevel chrome
     // window.  If we are, setup some state so that we don't have to restyle
     // the whole tree after StartLayout.
@@ -10821,6 +10857,11 @@ Document* Document::Open(const Optional<nsAString>& /* unused */,
   // navigation.
   if (shell && IsCurrentActiveDocument()) {
     if (shell->GetIsAttemptingToNavigate()) {
+      // Stopping can abort our own load and set readyState to "complete",
+      // which must not settle the promises of the load being replaced.
+      mParsedPromise = nullptr;
+      mContentLoadedPromise = nullptr;
+      mLoadedPromise = nullptr;
       shell->Stop(nsIWebNavigation::STOP_NETWORK);
 
       // The Stop call may have cancelled the onload blocker request or
@@ -13504,6 +13545,31 @@ void Document::SetReadyStateInternal(ReadyState aReadyState,
   if (wasLoading && StaticPrefs::dom_element_blocking_enabled()) {
     MaybeScheduleRendering();
   }
+  switch (aReadyState) {
+    case READYSTATE_LOADING:
+      mParsedPromise = nullptr;
+      mContentLoadedPromise = nullptr;
+      mLoadedPromise = nullptr;
+      break;
+    case READYSTATE_INTERACTIVE:
+      if (mParsedPromise) {
+        mParsedPromise->MaybeResolveWithUndefined();
+      }
+      break;
+    case READYSTATE_COMPLETE:
+      if (mParsedPromise) {
+        mParsedPromise->MaybeResolveWithUndefined();
+      }
+      if (mContentLoadedPromise) {
+        mContentLoadedPromise->MaybeResolveWithUndefined();
+      }
+      if (mLoadedPromise) {
+        mLoadedPromise->MaybeResolveWithUndefined();
+      }
+      break;
+    default:
+      break;
+  }
   if (aUpdateTimingInformation && mTiming) {
     switch (aReadyState) {
       case READYSTATE_LOADING:
@@ -13527,10 +13593,6 @@ void Document::SetReadyStateInternal(ReadyState aReadyState,
     if (!mXULPersist && XRE_IsParentProcess()) {
       mXULPersist = new XULPersist(this);
       mXULPersist->Init();
-    }
-    if (!mChromeObserver) {
-      mChromeObserver = new ChromeObserver(this);
-      mChromeObserver->Init();
     }
   }
 
@@ -15707,6 +15769,31 @@ void Document::MaybeResolveReadyForIdle() {
   }
 }
 
+Promise* Document::GetReadinessPromise(RefPtr<Promise>& aPromise,
+                                       bool aResolved, ErrorResult& aRv) {
+  if (!aPromise) {
+    nsIGlobalObject* global = GetScopeObject();
+    aPromise = aResolved ? Promise::CreateResolvedWithUndefined(global, aRv)
+                         : Promise::Create(global, aRv);
+  }
+  return aPromise;
+}
+
+Promise* Document::GetParsed(ErrorResult& aRv) {
+  return GetReadinessPromise(mParsedPromise,
+                             mReadyState >= READYSTATE_INTERACTIVE, aRv);
+}
+
+Promise* Document::GetContentLoaded(ErrorResult& aRv) {
+  return GetReadinessPromise(mContentLoadedPromise,
+                             mReadyState == READYSTATE_COMPLETE, aRv);
+}
+
+Promise* Document::GetLoaded(ErrorResult& aRv) {
+  return GetReadinessPromise(mLoadedPromise, mReadyState == READYSTATE_COMPLETE,
+                             aRv);
+}
+
 mozilla::dom::PermissionsPolicy* Document::PermissionsPolicy() const {
   if (!mPermissionsPolicy) {
     mPermissionsPolicy =
@@ -17368,6 +17455,26 @@ Document::ElementReadyCheckResult Document::FullscreenElementReadyCheck(
     aRequest.Reject("FullscreenDeniedNotFocusedTab");
     return ElementReadyCheckResult::eErrorPromiseRejected;
   }
+  const bool isActiveDocumentChainConsistent = ([self = this]() {
+    Document* doc = self;
+    while (doc) {
+      if (!doc->IsCurrentActiveDocument()) {
+        return false;
+      }
+      Element* embedder = doc->GetEmbedderElement();
+      Document* parent = doc->GetInProcessParentDocument();
+      if (!!embedder != !!parent ||
+          (embedder && embedder->GetComposedDoc() != parent)) {
+        return false;
+      }
+      doc = parent;
+    }
+    return true;
+  })();
+  if (!isActiveDocumentChainConsistent) {
+    aRequest.Reject("FullscreenDeniedHidden");
+    return ElementReadyCheckResult::eErrorPromiseRejected;
+  }
   return ElementReadyCheckResult::eOk;
 }
 
@@ -18532,8 +18639,9 @@ void Document::ReportTrustedTypesReadiness() {
       used || Has(TrustedTypesReadinessSignal::CreatedPolicy);
   glean::security::trusted_types_readiness
       .Get(nsPrintfCString(
-          "htmlsink-%s_writesink-%s_ttcsp-%s_strictcsp-%s_created-%u_used-%u_"
-          "lib-%u_js-%u",
+          "doc-%s_htmlsink-%s_writesink-%s_ttcsp-%s_strictcsp-%s_created-%u_"
+          "used-%u_lib-%u_js-%u",
+          IsTopLevelContentDocument() ? "top" : "sub",
           Sink(TrustedTypesReadinessSignal::UsedHTMLSinkWithString,
                TrustedTypesReadinessSignal::UsedHTMLSinkWithTrustedHTML),
           Sink(TrustedTypesReadinessSignal::UsedWriteSinkWithString,
@@ -19943,20 +20051,28 @@ void Document::ScheduleResizeObserversNotification() {
   MaybeScheduleRenderingPhases({RenderingPhase::Layout});
 }
 
-static void FlushLayoutForWholeBrowsingContextTree(Document& aDoc,
-                                                   const ChangesToFlush& aCtf) {
+static MOZ_CAN_RUN_SCRIPT void FlushLayoutForSingleDocument(
+    Document& aDoc, const ChangesToFlush& aCtf) {
+  if (RefPtr ps = aDoc.GetPresShell(); ps && ps->DidInitialize()) {
+    ps->FlushPendingNotifications(aCtf);
+  }
+}
+
+static MOZ_CAN_RUN_SCRIPT void FlushLayoutForWholeBrowsingContextTree(
+    Document& aDoc, const ChangesToFlush& aCtf) {
   BrowsingContext* bc = aDoc.GetBrowsingContext();
   if (bc && bc->GetExtantDocument() == &aDoc) {
     RefPtr<BrowsingContext> top = bc->Top();
-    top->PreOrderWalk([aCtf](BrowsingContext* aCur) {
-      if (Document* doc = aCur->GetExtantDocument()) {
-        doc->FlushPendingNotifications(aCtf);
-      }
-    });
+    top->PreOrderWalk([aCtf](BrowsingContext* aCur)
+                          MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                            if (RefPtr doc = aCur->GetExtantDocument()) {
+                              FlushLayoutForSingleDocument(*doc, aCtf);
+                            }
+                          });
   } else {
     // If there is no browsing context, or we're not the current document of the
     // browsing context, then we just flush this document itself.
-    aDoc.FlushPendingNotifications(aCtf);
+    FlushLayoutForSingleDocument(aDoc, aCtf);
   }
 }
 
@@ -21427,7 +21543,9 @@ Document::AutomaticStorageAccessPermissionCanBeGranted(
     ContentChild* cc = ContentChild::GetSingleton();
     MOZ_ASSERT(cc);
 
-    return cc->SendAutomaticStorageAccessPermissionCanBeGranted(NodePrincipal())
+    return cc
+        ->SendAutomaticStorageAccessPermissionCanBeGranted(
+            WrapNotNull(NodePrincipal()))
         ->Then(GetCurrentSerialEventTarget(), __func__,
                [](const ContentChild::
                       AutomaticStorageAccessPermissionCanBeGrantedPromise::

@@ -103,6 +103,9 @@ static StaticMutex gNullOriginEntryTableMutex;
 static StaticAutoPtr<NullOriginEntryTable> gNullOriginEntryTable
     MOZ_GUARDED_BY(gNullOriginEntryTableMutex);
 
+BlobURLNullOriginEntry::BlobURLNullOriginEntry(const nsACString& aSpec,
+                                               nsIPrincipal* aPrincipal)
+    : mSpec(aSpec), mPrincipal(aPrincipal) {}
 BlobURLNullOriginEntry::~BlobURLNullOriginEntry() {
   StaticMutexAutoLock lock(gNullOriginEntryTableMutex);
   if (!gNullOriginEntryTable) {
@@ -209,7 +212,7 @@ void BroadcastBlobURLRegistration(const nsACString& aURI,
 
   dom::ContentChild* cc = dom::ContentChild::GetSingleton();
   (void)NS_WARN_IF(!cc->SendStoreAndBroadcastBlobURLRegistration(
-      nsCString(aURI), ipcBlob, aPrincipal, aPartitionKey));
+      nsCString(aURI), ipcBlob, WrapNotNull(aPrincipal), aPartitionKey));
 }
 
 void BroadcastBlobURLUnregistration(

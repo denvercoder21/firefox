@@ -4,12 +4,14 @@
 
 #include "TimelineManager.h"
 
+#include "mozilla/AnimationUtils.h"
 #include "mozilla/ElementAnimationData.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/ScrollTimeline.h"
 #include "mozilla/dom/TimelineName.h"
 #include "mozilla/dom/ViewTimeline.h"
+#include "nsAnimationManager.h"
 #include "nsPresContext.h"
 
 namespace mozilla {
@@ -84,9 +86,32 @@ void TimelineManager::RemoveTimelineTargetByName(
 }
 
 template <typename TimelineType>
-nsTArray<RefPtr<const nsAtom>> TimelineManager::TryDestroyTimeline(
-    Element* aElement, const PseudoStyleRequest& aPseudoRequest,
+void TimelineManager::DoUnregisterTimelines(
+    TimelineCollection<TimelineType>& aCollection,
     TimelineNameMap<TimelineType>& aTimelineNameMap) {
+  auto* animationManager = mPresContext->AnimationManager();
+  MOZ_ASSERT(animationManager);
+  for (const auto& name : aCollection.Timelines().Keys()) {
+    RemoveTimelineTargetByName(name, &aCollection.OwningElement(),
+                               aCollection.PseudoRequest(), aTimelineNameMap);
+    // Animations attached to this timeline need to look for another one.
+    animationManager->MarkNamedTimelineAnimationForUpdate(name);
+  }
+}
+
+void TimelineManager::UnregisterTimelines(
+    TimelineCollection<ScrollTimeline>& aCollection) {
+  DoUnregisterTimelines(aCollection, mScrollTimelineNameMap);
+}
+
+void TimelineManager::UnregisterTimelines(
+    TimelineCollection<ViewTimeline>& aCollection) {
+  DoUnregisterTimelines(aCollection, mViewTimelineNameMap);
+}
+
+template <typename TimelineType>
+nsTArray<RefPtr<const nsAtom>> TimelineManager::TryDestroyTimeline(
+    Element* aElement, const PseudoStyleRequest& aPseudoRequest) {
   auto* collection =
       TimelineCollection<TimelineType>::Get(aElement, aPseudoRequest);
   if (!collection) {
@@ -95,8 +120,6 @@ nsTArray<RefPtr<const nsAtom>> TimelineManager::TryDestroyTimeline(
   nsTArray<RefPtr<const nsAtom>> result{collection->Timelines().Count()};
   for (const auto& name : collection->Timelines().Keys()) {
     result.AppendElement(name);
-    RemoveTimelineTargetByName(name, aElement, aPseudoRequest,
-                               aTimelineNameMap);
   }
   collection->Destroy();
   return result;
@@ -120,8 +143,7 @@ nsTArray<RefPtr<const nsAtom>> TimelineManager::UpdateTimelines(
   switch (aType) {
     case ProgressTimelineType::Scroll:
       if (shouldDestroyTimelines) {
-        return TryDestroyTimeline<ScrollTimeline>(aElement, aPseudoRequest,
-                                                  mScrollTimelineNameMap);
+        return TryDestroyTimeline<ScrollTimeline>(aElement, aPseudoRequest);
       }
       return DoUpdateTimelines<ScrollTimeline>(
           mPresContext, aElement, aPseudoRequest,
@@ -129,8 +151,7 @@ nsTArray<RefPtr<const nsAtom>> TimelineManager::UpdateTimelines(
 
     case ProgressTimelineType::View:
       if (shouldDestroyTimelines) {
-        return TryDestroyTimeline<ViewTimeline>(aElement, aPseudoRequest,
-                                                mViewTimelineNameMap);
+        return TryDestroyTimeline<ViewTimeline>(aElement, aPseudoRequest);
       }
       return DoUpdateTimelines<ViewTimeline>(
           mPresContext, aElement, aPseudoRequest,
@@ -141,14 +162,26 @@ nsTArray<RefPtr<const nsAtom>> TimelineManager::UpdateTimelines(
 }
 
 void TimelineManager::UpdateTimelineScopes(
-    Element* aElement, const ComputedStyle* aComputedStyle) {
-  // For now, a scope specified on a pseudo-element is recorded against its
-  // originating element.
-  const auto pseudo = PseudoStyleRequest::NotPseudo();
-  auto* scope = TimelineScope::Get(aElement, pseudo);
+    Element* aElement, const PseudoStyleRequest& aPseudoRequest,
+    const ComputedStyle* aComputedStyle) {
+  auto* scope = TimelineScope::Get(aElement, aPseudoRequest);
+  // Animations referring to the names scoped before or after this change may
+  // now see a different timeline.
+  auto* animationManager = mPresContext->AnimationManager();
+  auto MarkForUpdate = [&](const TimelineScope& aScope) {
+    if (aScope.ScopesAll()) {
+      animationManager->MarkAllNamedTimelineAnimationsForUpdate();
+    } else {
+      animationManager->MarkNamedTimelineAnimationsForUpdate(aScope.Names());
+    }
+  };
+  if (scope) {
+    MarkForUpdate(*scope);
+  }
   const auto timelineScope =
       aComputedStyle->StyleUIReset()->mTimelineScope.value.AsSpan();
   if (timelineScope.IsEmpty()) {
+    // Delete the scope & we're done.
     MOZ_ASSERT(scope, "Timeline scopes out of sync");
     if (scope) {
       scope->Destroy();
@@ -157,8 +190,8 @@ void TimelineManager::UpdateTimelineScopes(
   }
 
   if (!scope) {
-    scope =
-        &aElement->EnsureAnimationData().EnsureTimelineScope(*aElement, pseudo);
+    scope = &aElement->EnsureAnimationData().EnsureTimelineScope(
+        *aElement, aPseudoRequest);
     mTimelineScopes.insertBack(scope);
   }
 
@@ -172,6 +205,7 @@ void TimelineManager::UpdateTimelineScopes(
     }
   }
   scope->SetNames(std::move(names));
+  MarkForUpdate(*scope);
 }
 
 static bool ScopedNameLooselyMatches(const dom::ShadowRoot* aTargetShadowRoot,
@@ -191,10 +225,10 @@ static bool ScopedNameLooselyMatches(const dom::ShadowRoot* aTargetShadowRoot,
 }
 
 /* static */
-bool TimelineManager::TimelineNameScopedByElement(const dom::Element* aElement,
-                                                  const nsAtom* aName) {
-  const auto* scope =
-      TimelineScope::Get(aElement, PseudoStyleRequest::NotPseudo());
+bool TimelineManager::TimelineNameScopedByElement(
+    const dom::Element* aElement, const PseudoStyleRequest& aPseudoRequest,
+    const nsAtom* aName) {
+  const auto* scope = TimelineScope::Get(aElement, aPseudoRequest);
   return scope && scope->Scopes(aName);
 }
 
@@ -282,7 +316,8 @@ TimelineType* TimelineManager::DoGetNamedTimelineInSubtree(
   auto IsValid = [&](const Element* aTimelineCandidate, const Element* aRoot) {
     const auto* e = aTimelineCandidate;
     for (; e && e != aRoot; e = e->GetParentElementCrossingShadowRoot()) {
-      if (TimelineNameScopedByElement(e, aName)) {
+      const auto [element, pseudo] = AnimationUtils::GetElementPseudoPair(e);
+      if (TimelineNameScopedByElement(element, pseudo, aName)) {
         // Scope already limited by some other element, bail.
         // TODO(dshin): This is a lot of linear traversals...
         return false;
@@ -297,8 +332,9 @@ TimelineType* TimelineManager::DoGetNamedTimelineInSubtree(
   for (auto itr = candidates.Data().crbegin(); itr != candidates.Data().crend();
        ++itr) {
     auto* timeline = itr->mTimeline.get();
-    const auto* e = timeline->TimelineTarget().mElement;
-    if (!IsValid(e, aRoot)) {
+    const auto target = timeline->TimelineTarget();
+    const auto* e = target.mElement;
+    if (!IsValid(e->GetPseudoElement(target.mPseudoRequest), aRoot)) {
       continue;
     }
     if (!ScopedNameLooselyMatches(aTargetShadowRoot, e, itr->mCascadeLevel)) {
@@ -457,8 +493,6 @@ nsTArray<RefPtr<const nsAtom>> TimelineManager::DoUpdateTimelines(
     if (collection) {
       for (const auto& name : collection->Timelines().Keys()) {
         result.AppendElement(name);
-        RemoveTimelineTargetByName(name, aElement, aPseudoRequest,
-                                   aTimelineNameMap);
       }
       collection->Destroy();
     }

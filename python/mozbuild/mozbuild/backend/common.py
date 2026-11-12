@@ -46,7 +46,12 @@ from mozbuild.frontend.l10n_manifest import (
 )
 from mozbuild.frontend.reader import SandboxValidationError
 from mozbuild.licenses import LicenseCollection, LicenseError
-from mozbuild.rust_commands import CARGO_SPEC_FILES, CargoCommand, cargo_spec
+from mozbuild.rust_commands import (
+    CARGO_SPEC_FILES,
+    RUST_EXCLUDED_FLAG_CATEGORIES,
+    CargoCommand,
+    cargo_spec,
+)
 
 
 def configured_defines(environment):
@@ -223,22 +228,26 @@ class CommonBackend(BuildBackend):
         self._rust_programs_for_spec = defaultdict(list)
         self._rust_tests_for_spec = []
 
-    def _computed_flag_list(self, relobjdir, var):
-        """Return all values for a computed flag in one directory."""
+    def _computed_flag_list(self, relobjdir, var, exclude=()):
+        """Return all values for a computed flag in one directory, without the
+        categories in `exclude`."""
         out = []
         for cf in self._computed_flags.get(relobjdir, ()):
-            out.extend(dict(cf.get_flags()).get(var, []))
+            out.extend(dict(cf.get_flags(exclude)).get(var, []))
         return out
 
     def _rust_computed_flags(self, relobjdir):
+        def flags(var):
+            return self._computed_flag_list(
+                relobjdir, var, exclude=RUST_EXCLUDED_FLAG_CATEGORIES
+            )
+
         return {
-            "computed_cflags": self._computed_flag_list(relobjdir, "CFLAGS"),
-            "computed_cxxflags": self._computed_flag_list(relobjdir, "CXXFLAGS"),
-            "computed_host_cflags": self._computed_flag_list(relobjdir, "HOST_CFLAGS"),
-            "computed_host_cxxflags": self._computed_flag_list(
-                relobjdir, "HOST_CXXFLAGS"
-            ),
-            "link_flags": self._computed_flag_list(relobjdir, "LDFLAGS"),
+            "computed_cflags": flags("CFLAGS"),
+            "computed_cxxflags": flags("CXXFLAGS"),
+            "computed_host_cflags": flags("HOST_CFLAGS"),
+            "computed_host_cxxflags": flags("HOST_CXXFLAGS"),
+            "link_flags": flags("LDFLAGS"),
         }
 
     def _rust_library_command(self, lib, profile_suffix):
@@ -263,6 +272,7 @@ class CommonBackend(BuildBackend):
         first = programs[0]
         objdir = mozpath.normsep(first.objdir)
         rustc_flags = ()
+        inputs = ()
         # Windows programs link a version resource generated in the object
         # directory.
         if (
@@ -270,11 +280,13 @@ class CommonBackend(BuildBackend):
             and self.environment.substs.get("MOZ_WIDGET_TOOLKIT") == "windows"
         ):
             rustc_flags = ("-C", f"link-arg={objdir}/module.res")
+            inputs = (mozpath.join(first.relobjdir, "module.res"),)
         return CargoCommand(
             kind=kind,
             manifest_path=mozpath.normsep(first.cargo_file),
             names=tuple(program.name for program in programs),
             outputs=tuple(mozpath.normsep(program.location) for program in programs),
+            inputs=inputs,
             features=first.features or (),
             cargo_profile_suffix=profile_suffix,
             working_directory=objdir,
@@ -286,9 +298,9 @@ class CommonBackend(BuildBackend):
         """Build a Cargo test command using the directory's Cargo profile."""
         rustflags = ()
         substs = self.environment.substs
-        # Test executables load shared libraries from dist/bin. Other platforms
-        # use an rpath, while Windows stages the libraries next to the test
-        # binaries.
+        # Test executables load shared libraries from dist/bin. Outside Windows
+        # they use an rpath, and on Linux and Windows `compose_env` also adds
+        # dist/bin to the library search path.
         if substs.get("OS_TARGET") != "WINNT":
             dist_bin = mozpath.join(self.environment.topobjdir, "dist", "bin")
             rustflags = ("-C", f"link-arg=-Wl,-rpath,{dist_bin}")

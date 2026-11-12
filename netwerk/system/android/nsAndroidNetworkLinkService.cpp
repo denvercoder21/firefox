@@ -4,6 +4,7 @@
 
 #include "nsAndroidNetworkLinkService.h"
 
+#include "../LinkServiceCommon.h"
 #include "AndroidBridge.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Logging.h"
@@ -134,6 +135,25 @@ nsAndroidNetworkLinkService::GetNetworkID(nsACString& aNetworkID) {
 }
 
 NS_IMETHODIMP
+nsAndroidNetworkLinkService::GetNetworkIDSeed(nsACString& aSeed) {
+  aSeed = GetNetworkIdSeed();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAndroidNetworkLinkService::MatchNetworkID(const nsACString& aNetworkID,
+                                            const nsACString& aSeed,
+                                            nsACString& aMatchingNetworkID,
+                                            bool* aResult) {
+  if (!mNetlinkSvc) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  *aResult = mNetlinkSvc->MatchNetworkID(aNetworkID, aSeed, aMatchingNetworkID);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsAndroidNetworkLinkService::GetDnsSuffixList(
     nsTArray<nsCString>& aDnsSuffixList) {
   aDnsSuffixList.Clear();
@@ -256,6 +276,16 @@ void nsAndroidNetworkLinkService::NotifyObservers(const char* aTopic,
         static_cast<nsINetworkLinkService*>(this), aTopic,
         aData ? NS_ConvertASCIItoUTF16(aData).get() : nullptr);
   }
+}
+
+NS_IMETHODIMP
+nsAndroidNetworkLinkService::GetNetworkInterfaces(
+    nsTArray<RefPtr<nsINetworkInterface>>& aNetworkInterfaces) {
+  if (!mNetlinkSvc) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return mNetlinkSvc->GetNetworkInterfaces(aNetworkInterfaces);
 }
 
 // static

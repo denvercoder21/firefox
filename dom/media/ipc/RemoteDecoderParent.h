@@ -48,6 +48,8 @@ class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
 
   bool OnManagerThread();
 
+  bool IsMediaEngineIdAllowed() const;
+
   // Rejects any in-flight IPC resolvers with NS_ERROR_DOM_MEDIA_CANCELED and
   // disconnects the matching MozPromiseRequestHolders so that their ThenValues
   // cannot trip AssertIsDead if the underlying decoder's promise chain is torn
@@ -73,8 +75,19 @@ class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
   // Only be used on Windows when the media engine playback is enabled.
   const Maybe<uint64_t> mMediaEngineId;
 
-  bool mInitAttempted = false;
-  bool mShutdown = false;
+  // Construct is accepted only in Unconstructed, Init only in Constructed, and
+  // Decode, Flush, Drain and SetSeekThreshold only in Initialized. Shutdown is
+  // accepted in any state. A failed Construct or Init keeps the state, so only
+  // Shutdown is accepted after it.
+  enum class State : uint8_t {
+    Unconstructed,
+    Constructing,
+    Constructed,
+    Initializing,
+    Initialized,
+    ShutDown,
+  };
+  State mState = State::Unconstructed;
 
   // Pending IPC resolvers and matching request holders for the in-flight
   // decoder promise. Accessed only on the manager thread.

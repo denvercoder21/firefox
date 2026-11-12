@@ -194,9 +194,7 @@ class AttachmentDownloader extends Downloader {
         return this._client.db.saveAttachment(attachmentId, null);
       },
       deleteMultiple: async attachmentIds => {
-        return this._client.db.saveAttachments(
-          attachmentIds.map(id => [id, null])
-        );
+        return this._client.db.deleteAttachments(attachmentIds);
       },
       prune: async excludeIds => {
         return this._client.db.pruneAttachments(excludeIds);
@@ -1369,7 +1367,9 @@ export class RemoteSettingsClient extends EventEmitter {
     return {
       remoteTimestamp,
       metadata,
-      remoteRecords,
+      remoteRecords: this.localFields.length
+        ? remoteRecords.map(r => this._cleanLocalFields(r))
+        : remoteRecords,
       ageSeconds,
     };
   }

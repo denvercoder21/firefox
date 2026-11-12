@@ -33795,12 +33795,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -33815,7 +33815,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-webextensions-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -33864,7 +33864,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -33884,7 +33884,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-webextensions-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -33965,12 +33965,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -33985,7 +33985,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-webextensions-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34034,12 +34034,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34049,7 +34049,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-webextensions-firefox-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34188,12 +34188,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34242,7 +34242,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34323,12 +34323,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34377,12 +34377,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-bing-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34502,7 +34502,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-buzzfeed**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34536,7 +34536,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-buzzfeed**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34587,7 +34587,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-buzzfeed**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34621,7 +34621,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-buzzfeed**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34746,12 +34746,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34800,7 +34800,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34881,12 +34881,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -34935,12 +34935,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35287,7 +35287,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-ebay**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35331,7 +35331,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-ebay**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35397,7 +35397,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-ebay**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35441,7 +35441,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-ebay**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35556,7 +35556,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-espn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35590,7 +35590,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-espn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35641,7 +35641,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-espn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35675,7 +35675,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-espn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35780,7 +35780,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-expedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35814,7 +35814,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-expedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35865,7 +35865,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-expedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35899,7 +35899,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-expedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -35916,285 +35916,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-expedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(facebook-d)=
-
-::::{dropdown} facebook
-:class-container: anchor-id-facebook-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t facebook
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#59`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm11-windows-firefox-facebook.manifest
-* **playback version**: 12.2.1
-* **secondary url**: <https://www.facebook.com/marketplace/?ref=bookmark>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.facebook.com>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-facebook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-facebook**
   - ❌
   - ❌
   - ❌
@@ -36224,7 +35945,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#65`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#59`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -36302,12 +36023,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36356,7 +36077,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36437,12 +36158,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36491,12 +36212,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-fandom**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36557,7 +36278,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#70`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#64`
 * **lower is better**: true
 * **page complete wait time**: 8000
 * **page cycles**: 25
@@ -36627,7 +36348,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-docs**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36671,7 +36392,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-docs**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36737,7 +36458,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-docs**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36781,7 +36502,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-docs**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -36808,284 +36529,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-google-docs**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(google-mail-d)=
-
-::::{dropdown} google-mail
-:class-container: anchor-id-google-mail-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t google-mail
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: false
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#76`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm5-linux-firefox-google-mail.manifest
-* **playback version**: 12.2.1
-* **support class**: browsertime_pageload.py
-* **test url**: <https://mail.google.com/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-google-mail**
   - ❌
   - ❌
   - ❌
@@ -37115,7 +36558,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#81`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#70`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -37183,7 +36626,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37227,7 +36670,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37293,7 +36736,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37337,7 +36780,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-google-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37393,7 +36836,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#87`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#76`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -37472,12 +36915,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37526,7 +36969,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37607,12 +37050,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37661,12 +37104,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-google-slides**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37727,7 +37170,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#93`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#82`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -37796,7 +37239,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imdb**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37840,7 +37283,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imdb**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37906,7 +37349,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imdb**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -37950,7 +37393,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imdb**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -38006,7 +37449,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#98`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#87`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -38076,7 +37519,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imgur**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -38120,7 +37563,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imgur**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -38186,7 +37629,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imgur**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -38230,7 +37673,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-imgur**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -38257,619 +37700,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-imgur**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(instagram-d)=
-
-::::{dropdown} instagram
-:class-container: anchor-id-instagram-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t instagram
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#110`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm8-darwin-firefox-instagram.manifest
-* **playback version**: 12.2.1
-* **secondary url**: <https://www.instagram.com/nobelprize_org/>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.instagram.com/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(linkedin-d)=
-
-::::{dropdown} linkedin
-:class-container: anchor-id-linkedin-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t linkedin
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#115`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm6-linux-firefox-linkedin.manifest
-* **playback version**: 8.1.1
-* **secondary url**: <https://www.linkedin.com/in/thommy-harris-hk-385723106/>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.linkedin.com/feed/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-linkedin**
   - ❌
   - ❌
   - ❌
@@ -38899,7 +37729,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#121`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#99`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -38968,7 +37798,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-microsoft**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -39012,7 +37842,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-microsoft**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -39078,7 +37908,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-microsoft**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -39122,7 +37952,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-microsoft**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -39149,509 +37979,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-microsoft**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(netflix-d)=
-
-::::{dropdown} netflix
-:class-container: anchor-id-netflix-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t netflix
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#126`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm6-linux-firefox-netflix.manifest
-* **playback version**: 8.1.1
-* **secondary url**: <https://www.netflix.com/title/699257>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.netflix.com/title/80117263>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-netflix**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(office-d)=
-
-::::{dropdown} office
-:class-container: anchor-id-office-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t office
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#132`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm7-linux-firefox-office.manifest
-* **playback version**: 12.2.1
-* **secondary url**: <https://www.office.com/>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.office.com/launch/powerpoint?auth=1>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-office**
   - ❌
   - ❌
   - ❌
@@ -39878,841 +38205,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
 
 ::::
 
-(outlook-d)=
-
-::::{dropdown} outlook
-:class-container: anchor-id-outlook-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t outlook
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#136`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm5-linux-firefox-live.manifest
-* **playback version**: 12.2.1
-* **support class**: browsertime_pageload.py
-* **test url**: <https://outlook.live.com/mail/inbox>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-outlook**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(paypal-d)=
-
-::::{dropdown} paypal
-:class-container: anchor-id-paypal-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t paypal
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#140`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm5-linux-firefox-paypal.manifest
-* **playback version**: 12.2.1
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.paypal.com/myaccount/summary/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(pinterest-d)=
-
-::::{dropdown} pinterest
-:class-container: anchor-id-pinterest-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t pinterest
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: false
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#144`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm6-linux-firefox-pinterest.manifest
-* **playback version**: 8.1.1
-* **secondary url**: <https://www.pinterest.com/today/best/halloween-costumes-for-your-furry-friends/75787/>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://pinterest.com/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
 (reddit-d)=
 
 ::::{dropdown} reddit
@@ -40733,7 +38225,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#151`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#104`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -40802,7 +38294,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-reddit**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -40846,7 +38338,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-reddit**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -40912,7 +38404,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-reddit**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -40956,7 +38448,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-reddit**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -41426,285 +38918,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
 
 ::::
 
-(tumblr-d)=
-
-::::{dropdown} tumblr
-:class-container: anchor-id-tumblr-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t tumblr
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: true
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#157`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm6-linux-firefox-tumblr.manifest
-* **playback version**: 8.1.1
-* **secondary url**: <https://www.tumblr.com/tagged/funny+cats?sort=top>
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.tumblr.com/dashboard>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
 (twitter-d)=
 
 ::::{dropdown} twitter
@@ -41725,7 +38938,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#163`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#110`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -41803,12 +39016,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -41857,7 +39070,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -41938,12 +39151,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -41992,12 +39205,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-twitter**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42275,7 +39488,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#168`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#115`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -42334,7 +39547,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-wikia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42368,7 +39581,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-wikia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42419,7 +39632,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-wikia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42453,7 +39666,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-wikia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42499,7 +39712,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#175`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#122`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -42578,12 +39791,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42632,7 +39845,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42713,12 +39926,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42767,12 +39980,12 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-bytecode-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6-essential-firefox-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -42804,339 +40017,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-wikipedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
-(yahoo-mail-d)=
-
-::::{dropdown} yahoo-mail
-:class-container: anchor-id-yahoo-mail-d
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t yahoo-mail
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: firefox
-* **benchmark page**: false
-* **browser cycles**: 25
-* **expected**: pass
-* **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#180`
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy
-* **playback pageset manifest**: mitm5-linux-firefox-yahoo-mail.manifest
-* **playback version**: 12.2.1
-* **support class**: browsertime_pageload.py
-* **test url**: <https://mail.yahoo.com/>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-linux2404-64-clang-trunk/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-nightlyasrelease/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64-shippable/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-linux2404-64/opt <hardware-hpe-moonshot>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64-shippable/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1470-64/opt <hardware-mac-mini-r8>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-nightlyasrelease/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-macosx1500-aarch64-shippable/opt <hardware-mac-mini-m4>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-nightlyasrelease/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2-shippable/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-windows11-64-24h2/opt <hardware-nuc13-windows11>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6-bytecode-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-essential-firefox-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-firefox-yahoo-mail**
   - ❌
   - ❌
   - ❌
@@ -43166,7 +40046,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
 * **browser cycles**: 25
 * **expected**: pass
 * **gecko profile interval**: 1
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#185`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/desktop/browsertime-tp6.toml#127`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -43235,7 +40115,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-youtube**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43279,7 +40159,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-youtube**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43345,7 +40225,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-youtube**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43389,7 +40269,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6-firefox-youtube**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43517,7 +40397,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-cnn-nav**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43551,7 +40431,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-cnn-nav**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43602,7 +40482,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-cnn-nav**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43641,7 +40521,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-cnn-nav**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43754,7 +40634,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-ama**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43788,7 +40668,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-ama**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43839,7 +40719,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-ama**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43878,7 +40758,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-ama**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -43991,7 +40871,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-1**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44025,7 +40905,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-1**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44076,7 +40956,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-1**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44115,7 +40995,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-1**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44228,7 +41108,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-2**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44262,7 +41142,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-2**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44313,7 +41193,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-2**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -44352,7 +41232,7 @@ Browsertime tests that interact with the webpage. Includes responsiveness tests 
   - ❌
   - ❌
 * - **browsertime-responsiveness-firefox-reddit-billgates-post-2**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45321,6 +42201,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-allrecipes**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -45331,7 +42228,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-allrecipes**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45440,7 +42337,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-amazon**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45539,6 +42436,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-amazon-search**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -45549,7 +42463,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-amazon-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45668,7 +42582,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-bild-de**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45777,7 +42691,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-bing**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45886,7 +42800,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-bing-search-restaurants**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -45995,7 +42909,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-booking**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46104,7 +43018,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-cnn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46213,7 +43127,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-cnn-ampstories**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46322,7 +43236,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-dailymail**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46431,7 +43345,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46540,7 +43454,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46639,6 +43553,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-espn**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -46649,7 +43580,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-espn**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46749,6 +43680,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-google**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -46759,7 +43707,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-google**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46868,7 +43816,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-google-maps**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -46978,7 +43926,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-google-search-restaurants**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47087,7 +44035,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-imdb**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47153,116 +44101,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 ::::
 
-(instagram-m)=
-
-::::{dropdown} instagram
-:class-container: anchor-id-instagram-m
-
-* **Command to Run Locally**
-
-  ```
-  ./mach raptor -t instagram
-  ```
-
-**Owner**: PerfTest Team
-
-* **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
-* **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow
-* **benchmark page**: true
-* **browser cycles**: 15
-* **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#81`
-* **login**: true
-* **lower is better**: true
-* **page cycles**: 25
-* **page timeout**: 60000
-* **playback**: mitmproxy-android
-* **playback pageset manifest**: mitm8-android-gve-instagram.manifest
-* **playback version**: 12.2.1
-* **support class**: browsertime_pageload.py
-* **test url**: <https://www.instagram.com>
-* **type**: pageload
-* **unit**: ms
-* **use live sites**: false
-* **Test Task**:
-
-:::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6m-fenix-instagram**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **browsertime-tp6m-geckoview-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-fenix-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-geckoview-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-refbrow-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-:::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64/opt <hardware-samsung-a55>`**
-:widths: 30 15 15 15 15
-:header-rows: 1
-
-* - **Test Name**
-  - mozilla-central
-  - autoland
-  - mozilla-release
-  - mozilla-beta
-* - **browsertime-tp6m-fenix-instagram**
-  - ✅
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-geckoview-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-fenix-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-geckoview-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-refbrow-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-:::
-
-
-::::
-
 (microsoft-support-m)=
 
 ::::{dropdown} microsoft-support
@@ -47282,7 +44120,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#87`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#81`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47296,6 +44134,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-microsoft-support**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -47306,7 +44161,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-microsoft-support**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47391,7 +44246,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#90`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#84`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47415,7 +44270,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-reddit**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47500,7 +44355,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#93`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#87`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47524,7 +44379,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-stackoverflow**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47609,7 +44464,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#96`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#90`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47633,7 +44488,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-wikipedia**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47718,7 +44573,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#99`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#93`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47742,7 +44597,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-fenix-youtube**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -47827,7 +44682,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
-* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#102`
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#96`
 * **lower is better**: true
 * **page cycles**: 25
 * **page timeout**: 60000
@@ -47841,6 +44696,23 @@ Page-load performance test suite on Android. The links direct to the actual webs
 * **use live sites**: false
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-tp6m-essential-fenix-youtube-watch**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -47851,7 +44723,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - mozilla-release
   - mozilla-beta
 * - **browsertime-tp6m-essential-fenix-youtube-watch**
-  - ✅
+  - ❌
   - ✅
   - ❌
   - ❌
@@ -48190,6 +45062,23 @@ A composite benchmark that measures page loading and sub-navigation performance 
 * **use live sites**: false
 * **verbose**: true
 * **Test Task**:
+
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-nav-bench-m-fenix-nav-bench-m**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
 
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-nightlyasrelease/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15

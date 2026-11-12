@@ -300,7 +300,7 @@ def taskgraph_decision(command_context, **options):
             # Start the bugbug query before anything else, as it takes a while to
             # complete and blocks generating the tasks of the test kinds, which
             # wait for its result rather than querying bugbug again.
-            with shared_bugbug_query(options) as bugbug_future:
+            with shared_bugbug_query(options) as bugbug_result_path:
                 t_params_start = time.monotonic()
                 if monitor is not None:
                     monitor.begin_phase("parameters")
@@ -323,7 +323,7 @@ def taskgraph_decision(command_context, **options):
                 if monitor is not None:
                     monitor.begin_phase("taskgraph")
                 ret = taskgraph_decision(
-                    options, parameters, bugbug_future=bugbug_future
+                    options, parameters, bugbug_result_path=bugbug_result_path
                 )
                 t_taskgraph_end = time.monotonic()
                 if monitor is not None:

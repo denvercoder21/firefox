@@ -20,7 +20,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/Transcoding.h"  // JS::TranscodeRange, JS::TranscodeResult, JS::IsTranscodeFailureResult
 #include "js/Utility.h"
-#include "js/experimental/CompileScript.h"  // JS::FrontendContext, JS::NewFrontendContext, JS::DestroyFrontendContext, JS::SetNativeStackQuota, JS::ThreadStackQuotaForSize, JS::CompilationStorage, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::DecodeStencil, JS::PrepareForInstantiate, JS::AllowCancellingCompilation, JS::RequestFrontendCompilationCancellation
+#include "js/experimental/CompileScript.h"  // JS::FrontendContext, JS::NewFrontendContext, JS::DestroyFrontendContext, JS::SetNativeStackQuota, JS::ThreadStackQuotaForSize, JS::CompilationStorage, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::DecodeStencil, JS::PrepareForInstantiate, JS::FrontendContextCreationOptions, JS::RequestFrontendCompilationCancellation
 #include "js/experimental/JSStencil.h"  // JS::Stencil, JS::InstantiationStorage, JS::StartCollectingDelazifications, JS::IsStencilCacheable
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ModuleLoadRequest.h"
@@ -1982,6 +1982,8 @@ bool ScriptLoader::ProcessInlineScript(nsIScriptElement* aElement,
 
     // Remove any module preloads. Module specifier resolution is invalidated by
     // adding an import map, and incorrect dependencies may have been loaded.
+    // With multiple import maps, the preloaded module scripts are kept in the
+    // module map, and only their module graphs are reset.
     mPreloads.RemoveElementsBy(
         [this, multiImportMapsEnabled](const PreloadInfo& info) {
           if (!info.mRequest->IsModuleRequest()) {
@@ -1990,7 +1992,7 @@ bool ScriptLoader::ProcessInlineScript(nsIScriptElement* aElement,
 
           info.mRequest->Cancel();
           if (multiImportMapsEnabled) {
-            mModuleLoader->ClearPreloadedModuleGraph(
+            mModuleLoader->ResetPreloadedModuleGraph(
                 info.mRequest->AsModuleRequest());
           }
 
@@ -2169,7 +2171,9 @@ ScriptLoadRequest* ScriptLoader::LookupPreloadRequest(
     // script. Now the preload request is reused, so adding the resolved
     // specifiers into the global's resolved module set.
     if (request->IsModuleRequest()) {
-      mModuleLoader->MovePreloadedSetToResolvedSet(request->AsModuleRequest());
+      if (ModuleScript* ms = request->AsModuleRequest()->mModuleScript) {
+        mModuleLoader->MovePreloadedSetToResolvedSet(ms);
+      }
     }
   }
 
@@ -2578,8 +2582,9 @@ void StencilCompileOrDecodeTask::CancelTask() {
 }
 
 nsresult StencilCompileOrDecodeTask::InitFrontendContext() {
-  mFrontendContext =
-      JS::NewFrontendContext(JS::AllowCancellingCompilation::Yes);
+  JS::FrontendContextCreationOptions options;
+  options.allowCancellingCompilation = true;
+  mFrontendContext = JS::NewFrontendContext(&options);
   if (!mFrontendContext) {
     mIsCancelled = true;
     return NS_ERROR_OUT_OF_MEMORY;
@@ -3290,6 +3295,13 @@ void ScriptLoader::CalculateCacheFlag(ScriptLoadRequest* aRequest) {
     return;
   }
 
+  if (aRequest->HadRedirected()) {
+    LOG(("ScriptLoadRequest (%p): Bytecode-cache: Skip all: redirected",
+         aRequest));
+    aRequest->MarkNotCacheable();
+    return;
+  }
+
   bool isHTTPS = aRequest->URI()->SchemeIs("https");
 
   if (!aRequest->URI()->SchemeIs("http") && !isHTTPS) {
@@ -3933,8 +3945,6 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
   CalculateCacheFlag(aRequest);
-
-  MOZ_ASSERT(aRequest->PassedConditionForMemoryCache());
 
   // For cached stencils, there can be already ongoing work for the in-memory
   // cache and the disk cache.

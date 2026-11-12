@@ -3,6 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
+import os
+import sys
 import threading
 import time
 
@@ -15,9 +17,27 @@ from gecko_taskgraph.util.bugbug import (
     BUGBUG_BASE_URL,
     PUSH_SCHEDULES_ENV,
     BugbugTimeoutException,
+    get_session,
+    push_perf_risk,
     push_schedules,
     start_push_schedules,
 )
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires os.fork")
+def test_forked_child_gets_fresh_session():
+    session = get_session()
+    pid = os.fork()
+    if pid == 0:
+        # Always exit, so that the child never returns into pytest.
+        code = 1
+        try:
+            code = 0 if get_session() is not session else 1
+        finally:
+            os._exit(code)
+    _, status = os.waitpid(pid, 0)
+    assert os.waitstatus_to_exitcode(status) == 0
+    assert get_session() is session
 
 
 def test_group_translation(responses):
@@ -66,27 +86,53 @@ def test_group_translation(responses):
     assert push_schedules.cache_info().currsize == 1
 
 
-def test_start_push_schedules_success(responses):
+def test_run_push_schedules_query_success(responses, tmp_path):
     branch = "autoland"
     rev = "abcdef"
     url = BUGBUG_BASE_URL + f"/push/{branch}/{rev}/schedules"
+    path = str(tmp_path / "result.json")
 
     responses.add(responses.GET, url, json={"groups": {"dom/indexedDB": 1}})
 
-    future = start_push_schedules(branch, rev)
-    assert future.result(timeout=10) == {"groups": {"dom/indexedDB": 1}}
+    bugbug._run_push_schedules_query(branch, rev, path)
+    assert bugbug.read_push_schedules_data(path, branch, rev) == {
+        "groups": {"dom/indexedDB": 1}
+    }
+    assert bugbug.read_push_schedules_data(path, branch, "012345") is None
 
 
-def test_start_push_schedules_failure(responses):
+def test_run_push_schedules_query_failure(responses, tmp_path):
     branch = "autoland"
     rev = "abcdef"
     url = BUGBUG_BASE_URL + f"/push/{branch}/{rev}/schedules"
+    path = str(tmp_path / "result.json")
 
     responses.add(responses.GET, url, status=404)
 
-    future = start_push_schedules(branch, rev)
-    with pytest.raises(Exception):
-        future.result(timeout=10)
+    bugbug._run_push_schedules_query(branch, rev, path)
+    with open(path) as fh:
+        assert "error" in json.load(fh)
+    assert bugbug.read_push_schedules_data(path, branch, rev) is None
+
+
+def test_start_push_schedules(tmp_path, monkeypatch):
+    path = str(tmp_path / "result.json")
+    popen_args = []
+
+    def fake_popen(args, **kwargs):
+        popen_args.append((args, kwargs))
+        return "proc"
+
+    monkeypatch.setattr(bugbug.subprocess, "Popen", fake_popen)
+    assert start_push_schedules("autoland", "abcdef", path) == "proc"
+    [(args, kwargs)] = popen_args
+    assert args[1:] == ["-m", "gecko_taskgraph.util.bugbug", "autoland", "abcdef", path]
+    assert kwargs["env"]["PYTHONPATH"].split(os.pathsep) == sys.path
+
+
+def test_read_push_schedules_data_missing(tmp_path):
+    path = str(tmp_path / "result.json")
+    assert bugbug.read_push_schedules_data(path, "autoland", "abcdef") is None
 
 
 def test_push_schedules_timeout(responses, monkeypatch):
@@ -153,35 +199,28 @@ def test_push_schedules_shared_result_fallback(responses, result_path, result):
     assert push_schedules("autoland", "abcdef") == {"groups": {"dom/indexedDB": 1}}
 
 
-@pytest.mark.parametrize(
-    "status,expected",
-    (
-        pytest.param(200, {"data": {"groups": {"dom/indexedDB": 1}}}, id="success"),
-        pytest.param(404, None, id="failure"),
-    ),
-)
-def test_start_push_schedules_shares_result(responses, tmp_path, status, expected):
-    url = BUGBUG_BASE_URL + "/push/autoland/abcdef/schedules"
-    responses.add(
-        responses.GET, url, json={"groups": {"dom/indexedDB": 1}}, status=status
-    )
-    path = tmp_path / "result.json"
+def test_push_perf_risk(monkeypatch, responses):
+    push_perf_risk.cache_clear()
+    monkeypatch.setattr(time, "sleep", lambda i: None)
+    url = BUGBUG_BASE_URL + "/perfregressionpredictor/predict/push/autoland/abcdef"
+    prediction = {"risk_score": 0.2, "commits": [{"risk_score": 0.2}]}
 
-    future = start_push_schedules("autoland", "abcdef", str(path))
-    try:
-        future.result(timeout=10)
-    except Exception:
-        pass
-    for _ in range(100):
-        if path.exists():
-            break
-        threading.Event().wait(0.05)
-    result = json.loads(path.read_text())
-    assert (result["branch"], result["rev"]) == ("autoland", "abcdef")
-    if expected:
-        assert result["data"] == expected["data"]
-    else:
-        assert "error" in result
+    responses.add(responses.GET, url, json={"ready": False}, status=202)
+    responses.add(responses.GET, url, json=prediction, status=200)
+
+    assert push_perf_risk("autoland", "abcdef") == prediction
+    assert len(responses.calls) == 2
+
+
+def test_push_perf_risk_timeout(monkeypatch, responses):
+    push_perf_risk.cache_clear()
+    monkeypatch.setattr(bugbug, "RETRY_TIMEOUT", 0)
+    url = BUGBUG_BASE_URL + "/perfregressionpredictor/predict/push/autoland/abcdef"
+
+    responses.add(responses.GET, url, json={"ready": False}, status=202)
+
+    with pytest.raises(BugbugTimeoutException):
+        push_perf_risk("autoland", "abcdef")
 
 
 if __name__ == "__main__":

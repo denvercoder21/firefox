@@ -123,8 +123,8 @@ class BackgroundParentImpl : public PBackgroundParent {
       CreateFileSystemManagerParentResolver&& aResolver) override;
 
   mozilla::ipc::IPCResult RecvCreateWebTransportParent(
-      const nsAString& aURL, nsIPrincipal* aPrincipal,
-      const uint64_t& aBrowsingContextID, const IPCClientInfo& aClientInfo,
+      const nsAString& aURL, Tainted<RefPtr<nsIPrincipal>>&& aPrincipal,
+      const uint64_t& aBrowsingContextID, Tainted<IPCClientInfo>&& aClientInfo,
       const bool& aDedicated, const bool& aRequireUnreliable,
       const uint32_t& aCongestionControl, nsTArray<nsString>&& aProtocols,
       nsTArray<WebTransportHeader>&& aHeaders,
@@ -138,8 +138,8 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   mozilla::ipc::IPCResult RecvCreateNotificationParent(
       Endpoint<dom::notification::PNotificationParent>&& aParentEndpoint,
-      NotNull<nsIPrincipal*> aPrincipal,
-      NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
+      Tainted<NotNull<RefPtr<nsIPrincipal>>>&& aPrincipal,
+      Tainted<NotNull<RefPtr<nsIPrincipal>>>&& aEffectiveStoragePrincipal,
       const bool& aIsSecureContext, const nsAString& aScope,
       const IPCNotification& aNotification,
       CreateNotificationParentResolver&& aResolver) final;
@@ -302,7 +302,7 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   mozilla::ipc::IPCResult RecvCreateMLSTransaction(
       Endpoint<PMLSTransactionParent>&& aEndpoint,
-      NotNull<nsIPrincipal*> aPrincipal) override;
+      Tainted<NotNull<RefPtr<nsIPrincipal>>>&& aPrincipal) override;
 
   mozilla::ipc::IPCResult RecvStorageActivity(
       const PrincipalInfo& aPrincipalInfo) override;
@@ -326,12 +326,12 @@ class BackgroundParentImpl : public PBackgroundParent {
   already_AddRefed<PServiceWorkerRegistrationParent>
   AllocPServiceWorkerRegistrationParent(
       const IPCServiceWorkerRegistrationDescriptor&,
-      const IPCClientInfo&) final;
+      Tainted<IPCClientInfo>&) final;
 
   mozilla::ipc::IPCResult RecvPServiceWorkerRegistrationConstructor(
       PServiceWorkerRegistrationParent* aActor,
       const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
-      const IPCClientInfo& aForClient) override;
+      Tainted<IPCClientInfo>&& aForClient) override;
 
   mozilla::ipc::IPCResult RecvEnsureRDDProcessAndCreateBridge(
       EnsureRDDProcessAndCreateBridgeResolver&& aResolver) override;
@@ -344,12 +344,9 @@ class BackgroundParentImpl : public PBackgroundParent {
       const bool& aAllowPermissionRequest,
       RequestCameraAccessResolver&& aResolver) override;
 
-  mozilla::ipc::IPCResult RecvPLockManagerConstructor(
-      PLockManagerParent* actor, mozilla::NotNull<nsIPrincipal*> aPrincipalInfo,
-      const Maybe<nsID>& aClientId) override;
-
   already_AddRefed<PLockManagerParent> AllocPLockManagerParent(
-      NotNull<nsIPrincipal*> aPrincipal, const Maybe<nsID>& aClientId) final;
+      Tainted<NotNull<RefPtr<nsIPrincipal>>>& aPrincipal,
+      const Maybe<nsID>& aClientId) final;
 
   already_AddRefed<PFetchParent> AllocPFetchParent() override;
 };

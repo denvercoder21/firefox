@@ -351,14 +351,14 @@ bool WebGLContext::CreateAndInitGL(
     tryNativeGL = false;
   }
 
-  if (StaticPrefs::webgl_disable_angle() ||
+  if (StaticPrefs::webgl_disable_angle_AtStartup() ||
       PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL") || useEGL) {
     tryNativeGL = true;
     tryANGLE = false;
   }
 #elif defined(XP_MACOSX)
   if (gfx::gfxVars::AllowMetalAngleWebGL() &&
-      !StaticPrefs::webgl_disable_angle() &&
+      !StaticPrefs::webgl_disable_angle_AtStartup() &&
       // Metal does not expose a software renderer. Fall back to native (CGL) if
       // a hardware context is forbidden.
       !(flags & gl::CreateContextFlags::FORBID_HARDWARE)) {
@@ -661,6 +661,11 @@ RefPtr<WebGLContext> WebGLContext::Create(HostWebGLContext* host,
   out->limits = *webgl->mLimits;
   out->uploadableSdTypes = webgl->mUploadableSdTypes;
   out->vendor = webgl->gl->Vendor();
+#if defined(MOZ_AARCH64) && defined(XP_MACOSX)
+  // Blit uploads can cause application freezes on the native GL driver on apple
+  // silicon. See bug 1800573.
+  out->supportsDomBlitUploads = webgl->gl->IsMetalANGLE();
+#endif
   out->optionalRenderableFormatBits = webgl->mOptionalRenderableFormatBits;
 
   return webgl;

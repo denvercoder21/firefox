@@ -135,7 +135,7 @@ static mozilla::LazyLogModule sGVSupportLog("GeckoViewSupport");
 // one.
 constinit static nsTArray<nsWindow*> gTopLevelWindows;
 
-static const double kTouchResampleVsyncAdjustMs = 5.0;
+static const int32_t kTouchResampleVsyncAdjustMs = 5;
 
 static const int32_t INPUT_RESULT_UNHANDLED =
     java::PanZoomController::INPUT_RESULT_UNHANDLED;
@@ -3777,11 +3777,14 @@ void nsWindow::NotifyCompositorScrollUpdates(
           mLayerViewSupport.Access()}) {
     const auto& compositor = lvs->GetJavaCompositor();
     mContentDocumentDisplayed = true;
+    const auto session = compositor->GetSession();
     for (const auto& update : aUpdates) {
       compositor->NotifyCompositorScrollUpdate(
-          update.mMetrics.mVisualScrollOffset.x,
-          update.mMetrics.mVisualScrollOffset.y, update.mMetrics.mZoom.scale,
-          ConvertScrollUpdateSource(update.mSource));
+          java::GeckoSession::ScrollPositionUpdate::New(
+              session, update.mMetrics.mVisualScrollOffset.x,
+              update.mMetrics.mVisualScrollOffset.y,
+              update.mMetrics.mZoom.scale,
+              ConvertScrollUpdateSource(update.mSource)));
     }
   }
 }

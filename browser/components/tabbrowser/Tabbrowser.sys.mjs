@@ -66,14 +66,7 @@ const lazy = XPCOMUtils.declareLazy({
   TabGroupsToolbarButton:
     "moz-src:///browser/components/tabbrowser/TabGroupsToolbarButton.sys.mjs",
   tabLocalization: () =>
-    new Localization(
-      [
-        "browser/tabbrowser.ftl",
-        "browser/taskbartabs.ftl",
-        "branding/brand.ftl",
-      ],
-      true
-    ),
+    new Localization(["browser/tabbrowser.ftl", "branding/brand.ftl"], true),
   TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
   TabStateFlusher:
     "moz-src:///browser/components/sessionstore/TabStateFlusher.sys.mjs",
@@ -1778,29 +1771,12 @@ export class Tabbrowser {
   }
 
   /**
-   * The current Taskbar Tab associated with this window. This cannot
-   * change after it is first set.
+   * The name and container of the Taskbar Tab associated with this window.
+   * This cannot change after it is first set.
    *
-   * @type {TaskbarTab|null}
+   * @type {{name: string, userContextId: number}|null}
    */
-  #taskbarTab = null;
-
-  /**
-   * The last title associated with this window, avoiding re-lookup
-   * of the container name and localizations.
-   *
-   * @type {string|null}
-   */
-  #taskbarTabTitle = null;
-
-  /**
-   * The last profile used when determining the Taskbar Tab title. (This
-   * can change, for example if the first profile is made after opening
-   * the Taskbar Tab.)
-   *
-   * @type {string|null}
-   */
-  #taskbarTabTitleLastProfile = null;
+  #taskbarTabTitleInfo = null;
 
   /**
    * Determines the content of the window title that relates to the Taskbar
@@ -1821,21 +1797,17 @@ export class Tabbrowser {
       return null;
     }
 
-    if (this.#taskbarTabTitle && this.#taskbarTabTitleLastProfile == aProfile) {
-      return this.#taskbarTabTitle;
-    }
+    if (!this.#taskbarTabTitleInfo) {
+      let id = lazy.TaskbarTabsUtils.getTaskbarTabIdFromWindow(
+        this.documentGlobal
+      );
+      if (!id) {
+        return null;
+      }
 
-    let id = lazy.TaskbarTabsUtils.getTaskbarTabIdFromWindow(
-      this.documentGlobal
-    );
-    if (!id) {
-      return null;
-    }
-
-    if (!this.#taskbarTab) {
-      lazy.TaskbarTabs.getTaskbarTab(id)
-        .then(tt => {
-          this.#taskbarTab = tt;
+      lazy.TaskbarTabs.getTaskbarTabTitleInfo(id)
+        .then(info => {
+          this.#taskbarTabTitleInfo = info;
           this.updateTitlebar();
         })
         .catch(() => {
@@ -1844,27 +1816,10 @@ export class Tabbrowser {
       return null;
     }
 
-    let containerLabel = this.#taskbarTab.userContextId
-      ? lazy.ContextualIdentityService.getUserContextLabel(
-          this.#taskbarTab.userContextId
-        )
-      : "";
-
-    let stringName = "taskbar-tab-title-default";
-    if (containerLabel && aProfile) {
-      stringName = "taskbar-tab-title-container-profile";
-    } else if (containerLabel && !aProfile) {
-      stringName = "taskbar-tab-title-container";
-    } else if (!containerLabel && aProfile) {
-      stringName = "taskbar-tab-title-profile";
-    }
-
-    this.#taskbarTabTitle = this.tabLocalization.formatValueSync(stringName, {
-      name: this.#taskbarTab.name,
-      container: containerLabel,
-      profile: aProfile,
-    });
-    return this.#taskbarTabTitle;
+    return lazy.TaskbarTabsUtils.createTaskbarTabTitle(
+      this.#taskbarTabTitleInfo,
+      aProfile
+    );
   }
 
   #determineContentTitle(browser) {
@@ -2506,13 +2461,15 @@ export class Tabbrowser {
     }
     aBrowser._sharingState = Object.assign(aBrowser._sharingState, aState);
 
-    if ("webRTC" in aState) {
-      if (aBrowser._sharingState.webRTC?.sharing) {
-        if (aBrowser._sharingState.webRTC.paused) {
-          tab.removeAttribute("sharing");
-        } else {
-          tab.setAttribute("sharing", aState.webRTC.sharing);
-        }
+    if ("webRTC" in aState || "serial" in aState) {
+      let { webRTC, serial } = aBrowser._sharingState;
+      // If both are being shared, prefer showing the webRTC
+      // sharing icon since microphone/camera/screen are
+      // more sensitive than a serial device.
+      if (webRTC?.sharing && !webRTC.paused) {
+        tab.setAttribute("sharing", webRTC.sharing);
+      } else if (serial) {
+        tab.setAttribute("sharing", "serial");
       } else {
         tab.removeAttribute("sharing");
       }
@@ -3955,12 +3912,11 @@ export class Tabbrowser {
       null;
 
     // When overflowing, new tabs are scrolled into view smoothly, which
-    // doesn't go well together with the width transition. So we skip the
-    // transition in that case.
+    // doesn't go well together with the width and height transitions. So we
+    // skip the transition in that case.
     let animate =
       !skipAnimation &&
       !pinned &&
-      !this.tabContainer.verticalMode &&
       !this.tabContainer.overflowing &&
       !this.documentGlobal.gReduceMotion;
 
@@ -4123,12 +4079,12 @@ export class Tabbrowser {
       if (usingPreloadedContent) {
         this.documentGlobal.requestAnimationFrame(() => {
           this.documentGlobal.requestAnimationFrame(() => {
-            t.setAttribute("fadein", "true");
+            this.tabContainer.startTabOpening(t);
           });
         });
       } else {
         this.documentGlobal.requestAnimationFrame(() => {
-          t.setAttribute("fadein", "true");
+          this.tabContainer.startTabOpening(t);
         });
       }
     }
@@ -4780,6 +4736,9 @@ export class Tabbrowser {
         this.tabContainer
       );
     } else {
+      if (this.tabContainer.verticalMode) {
+        t.toggleAttribute("height-animating", true);
+      }
       UserInteraction.update(
         "browser.tabs.opening",
         "animated",
@@ -6611,13 +6570,13 @@ export class Tabbrowser {
       isLastTab ||
       aTab.pinned ||
       !isVisibleTab ||
-      this.tabContainer.verticalMode ||
       this._removingTabs.size >
         3 /* don't want lots of concurrent animations */ ||
       !aTab.hasAttribute(
         "fadein"
       ) /* fade-in transition hasn't been triggered yet */ ||
-      tabWidth == 0 /* fade-in transition hasn't moved yet */
+      tabWidth == 0 /* fade-in transition hasn't moved yet */ ||
+      (this.tabContainer.verticalMode && aTab.splitview)
     ) {
       // We're not animating, so we can cancel the animation stopwatch.
       Glean.browserTabclose.timeAnim.cancel(
@@ -6634,16 +6593,18 @@ export class Tabbrowser {
     );
     Tabbrowser.#closeTimeNoAnimTimerIds.delete(aTab);
 
+    if (this.tabContainer.verticalMode) {
+      this.tabContainer.animateTabHeight(aTab, false);
+    } else {
+      aTab.removeAttribute("fadein");
+    }
+
     aTab.style.maxWidth = ""; // ensure that fade-out transition happens
-    aTab.removeAttribute("fadein");
     aTab.removeAttribute("bursting");
 
     this.documentGlobal.setTimeout(
       function (tab, tabbrowser) {
-        if (
-          tab.container &&
-          tabbrowser.documentGlobal.getComputedStyle(tab).maxWidth == "0.1px"
-        ) {
+        if (tab.container && tabbrowser._removingTabs.has(tab)) {
           console.assert(
             false,
             "Giving up waiting for the tab closing animation to finish (bug 608589)"

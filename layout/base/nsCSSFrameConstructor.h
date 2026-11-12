@@ -429,27 +429,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   void SetUpDocElementContainingBlock(nsIContent* aDocElement);
 
   /**
-   * CreateAttributeContent creates a single content/frame combination for an
-   * |attr(foo)| generated content.
-   *
-   * @param aParentContent the parent content for the generated content (that
-   * is, the originating element).
-   * @param aParentFrame the parent frame for the generated frame
-   * @param aAttrNamespace the namespace of the attribute in question
-   * @param aAttrName the localname of the attribute
-   * @param aComputedStyle the style to use
-   * @param aGeneratedContent the array of generated content to append the
-   *                          created content to.
-   * @param [out] aNewContent the content node we create
-   * @param [out] aNewFrame the new frame we create
-   */
-  void CreateAttributeContent(const Element& aParentContent,
-                              nsIFrame* aParentFrame, int32_t aAttrNamespace,
-                              nsAtom* aAttrName, ComputedStyle* aComputedStyle,
-                              nsCOMArray<nsIContent>& aGeneratedContent,
-                              nsIContent** aNewContent, nsIFrame** aNewFrame);
-
-  /**
    * Create a text node containing the given string. If aText is non-null
    * then we also set aText to the returned node.
    */
@@ -1439,8 +1418,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                                              ComputedStyle&);
   static const FrameConstructionData* FindImgControlData(const Element&,
                                                          ComputedStyle&);
-  static const FrameConstructionData* FindSearchControlData(const Element&,
-                                                            ComputedStyle&);
   static const FrameConstructionData* FindInputData(const Element&,
                                                     ComputedStyle&);
   static const FrameConstructionData* FindObjectData(const Element&,
@@ -1701,14 +1678,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   void FinishBuildingScrollContainerFrame(
       nsContainerFrame* aScrollContainerFrame, nsIFrame* aScrolledFrame);
 
-  void InitializeListboxSelect(nsFrameConstructorState& aState,
-                               nsContainerFrame* aScrollFrame,
-                               nsContainerFrame* aScrolledFrame,
-                               nsIContent* aContent,
-                               nsContainerFrame* aParentFrame,
-                               ComputedStyle* aComputedStyle,
-                               nsFrameList& aFrameList);
-
   /**
    * Recreate frames for aContent.
    */
@@ -1726,6 +1695,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // GetPrimaryFrame() call on a content node (which means its parent is also
   // not null).
   bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame);
+  bool ShouldRebuildFrameTreeForReplicatedFrames(nsIFrame*);
 
   nsIFrame* CreateContinuingOuterTableFrame(nsIFrame* aFrame,
                                             nsContainerFrame* aParentFrame,

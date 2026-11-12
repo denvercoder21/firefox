@@ -1884,13 +1884,13 @@ bool SharedContextWebgl::CreateShaders() {
         "in highp vec2 v_cliptc;\n"
         "in highp vec2 v_texcoord;\n"
         "in highp vec4 v_texbounds;\n"
-        "in vec4 v_clipdist;\n"
-        "flat in vec2 v_gauss_coeffs;\n"
+        "in highp vec4 v_clipdist;\n"
+        "flat in highp vec2 v_gauss_coeffs;\n"
         "flat in ivec2 v_support;\n"
         "out vec4 out_FragColor;\n"
         "void main() {\n"
-        "  vec3 gauss_coeff = vec3(v_gauss_coeffs,\n"
-        "                          v_gauss_coeffs.y * v_gauss_coeffs.y);\n"
+        "  highp vec3 gauss_coeff = vec3(v_gauss_coeffs,\n"
+        "                                v_gauss_coeffs.y * v_gauss_coeffs.y);\n"
         "  bvec4 inside = greaterThanEqual(v_texbounds, vec4(0.0));\n"
         "  vec4 avg_color = texture(u_sampler, v_texcoord) *\n"
         "                   (all(inside.xy) ? gauss_coeff.x : 0.0);\n"
@@ -3334,7 +3334,11 @@ bool SharedContextWebgl::DrawRectAccel(
         // from a shared texture page.
         handle = AllocateTextureHandle(
             mCurrentTarget, format, texSize,
-            !aForceUpdate && surfacePattern.mExtendMode == ExtendMode::CLAMP);
+            !aForceUpdate && surfacePattern.mExtendMode == ExtendMode::CLAMP,
+            false,
+            mTargetHandle
+                ? mTargetHandle->GetBackingTexture()->GetWebGLTexture().get()
+                : nullptr);
         if (!handle) {
           MOZ_ASSERT(false);
           break;
@@ -3359,6 +3363,12 @@ bool SharedContextWebgl::DrawRectAccel(
                                   : handle->GetBounds().SafeIntersect(
                                         bounds + handle->GetBounds().TopLeft());
         backingSize = backing->GetSize();
+      }
+
+      // Cached masks can share a texture with the current filter input target.
+      if (mTargetHandle &&
+          tex == mTargetHandle->GetBackingTexture()->GetWebGLTexture()) {
+        return false;
       }
 
       // Map the composition op to a WebGL blend mode, if possible. If there is
@@ -5002,7 +5012,10 @@ already_AddRefed<TextureHandle> SharedContextWebgl::DrawStrokeMask(
     const PathVertexRange& aVertexRange, const IntSize& aSize) {
   // Allocate a new texture handle to store the rendered mask.
   RefPtr<TextureHandle> handle = AllocateTextureHandle(
-      mCurrentTarget, SurfaceFormat::A8, aSize, true, true);
+      mCurrentTarget, SurfaceFormat::A8, aSize, true, true,
+      mTargetHandle
+          ? mTargetHandle->GetBackingTexture()->GetWebGLTexture().get()
+          : nullptr);
   if (!handle) {
     return nullptr;
   }
