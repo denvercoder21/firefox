@@ -7624,11 +7624,24 @@ Maybe<ScrollState> ScrollContainerFrame::SaveState() {
       scrollAnimationState.contains(AnimationState::MainThread) ||
       scrollAnimationState.contains(AnimationState::APZPending) ||
       scrollAnimationState.contains(AnimationState::APZRequested);
-  if (!mHasBeenScrolled && !mDidHistoryRestore && !isScrollAnimating) {
+  const bool hasScrollState =
+      mHasBeenScrolled || mDidHistoryRestore || isScrollAnimating;
+  const bool hasSnapState = mScrollSnapChangeTargetBlock ||
+                            mScrollSnapChangeTargetInline ||
+                            mScrollSnapChangeEventGeneration ==
+                                PresShell()->GetScrollEventGeneration();
+  if (!hasScrollState && !hasSnapState) {
     return Nothing();
   }
-
   ScrollState state;
+  state.mScrollSnapChangeEventGeneration = mScrollSnapChangeEventGeneration;
+  state.mScrollSnapChangeTargetBlock = mScrollSnapChangeTargetBlock;
+  state.mScrollSnapChangeTargetInline = mScrollSnapChangeTargetInline;
+  if (!hasScrollState) {
+    state.mHasScrollPosition = false;
+    return Some(state);
+  }
+
   bool allowScrollOriginDowngrade =
       !nsLayoutUtils::CanScrollOriginClobberApz(mLastScrollOrigin) ||
       mAllowScrollOriginDowngrade;
@@ -7675,7 +7688,7 @@ static bool GetStateKey(nsIContent* aContent, nsACString& aKey) {
 void ScrollContainerFrame::SaveState(nsILayoutHistoryState* aState) {
   MOZ_ASSERT(aState);
   Maybe<ScrollState> state = SaveState();
-  if (!state) {
+  if (!state || !state->mHasScrollPosition) {
     return;
   }
   nsAutoCString key;
@@ -7708,6 +7721,13 @@ void ScrollContainerFrame::RestoreState(nsILayoutHistoryState* aState) {
 }
 
 void ScrollContainerFrame::RestoreState(const ScrollState& aState) {
+  mScrollSnapChangeEventGeneration = aState.mScrollSnapChangeEventGeneration;
+  mScrollSnapChangeTargetBlock = aState.mScrollSnapChangeTargetBlock;
+  mScrollSnapChangeTargetInline = aState.mScrollSnapChangeTargetInline;
+  if (!aState.mHasScrollPosition) {
+    return;  // Snap-only state, see SaveState().
+  }
+
   mRestorePos = aState.mScrollPosition;
   MOZ_ASSERT(mLastScrollOrigin == ScrollOrigin::None);
   mAllowScrollOriginDowngrade = aState.mAllowScrollOriginDowngrade;
