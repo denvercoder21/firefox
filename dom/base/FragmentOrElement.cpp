@@ -358,6 +358,7 @@ void FragmentOrElement::nsExtendedDOMSlots::UnlinkExtendedSlots(
   mAttrElementsMap.Clear();
   mRadioGroupContainer = nullptr;
   mPart = nullptr;
+  mSavedScrollState = nullptr;
 }
 
 void FragmentOrElement::nsExtendedDOMSlots::TraverseExtendedSlots(
@@ -396,6 +397,14 @@ void FragmentOrElement::nsExtendedDOMSlots::TraverseExtendedSlots(
   }
   ImplCycleCollectionTraverse(aCb, mRadioGroupContainer,
                               "mExtendedSlots->mRadioGroupContainer");
+  if (mSavedScrollState) {
+    ImplCycleCollectionTraverse(
+        aCb, mSavedScrollState->mScrollSnapChangeTargetBlock,
+        "mExtendedSlots->mSavedScrollState->mScrollSnapChangeTargetBlock");
+    ImplCycleCollectionTraverse(
+        aCb, mSavedScrollState->mScrollSnapChangeTargetInline,
+        "mExtendedSlots->mSavedScrollState->mScrollSnapChangeTargetInline");
+  }
 }
 
 size_t FragmentOrElement::nsExtendedDOMSlots::SizeOfExcludingThis(

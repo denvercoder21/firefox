@@ -7,7 +7,10 @@
 
 #include <cstdint>
 
+#include "mozilla/RefPtr.h"
 #include "nsPoint.h"
+
+class nsIContent;
 
 namespace mozilla {
 
@@ -23,10 +26,15 @@ struct ScrollState {
   // Only meaningful for root scroll frames.
   float mResolution = 1.0f;
   // Scroll event generations are per-PresShell, so they're only restored
-  // within the same document, and never end up in session history.
+  // within the same document, and never end up in session history. The same
+  // goes for the snap targets last reported by scrollsnapchange.
   uint32_t mScrollEventGeneration = 0;
   uint32_t mScrollEndEventGeneration = 0;
+  uint32_t mScrollSnapChangeEventGeneration = 0;
+  RefPtr<nsIContent> mScrollSnapChangeTargetBlock;
+  RefPtr<nsIContent> mScrollSnapChangeTargetInline;
   bool mAllowScrollOriginDowngrade = true;
+  bool mHasScrollPosition = true;
 };
 
 }  // namespace mozilla
